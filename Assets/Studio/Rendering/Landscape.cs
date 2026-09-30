@@ -1,12 +1,18 @@
 using UnityEngine;
 namespace Fosters.Studio
 {
-    public sealed class Landscape
+    // Everything a product draws behind, around and including the rider each frame.
+    public interface IScenery
     {
-        readonly Ink ink;readonly GameModule module;readonly Color[] day,dusk;
-        public Landscape(Ink i,GameModule m){ink=i;module=m;day=m.Palette(false);dusk=m.Palette(true);}
+        void Draw(Course course,Motor motor,Progress prefs,float cameraX,float cameraY,float halfWidth,float halfHeight,float time);
+    }
+    // Default minimalist scenery (single dynamic mesh).
+    public sealed class Landscape : IScenery
+    {
+        readonly InkLayer layer;readonly Ink ink;readonly GameModule module;readonly Color[] day,dusk;
+        public Landscape(InkLayer l,GameModule m){layer=l;ink=l.Ink;module=m;day=m.Palette(false);dusk=m.Palette(true);}
         static float Hash(int n){return Mathf.Repeat(Mathf.Sin(n*127.1f+311.7f)*43758.5453f,1);}
-        public void Draw(Course course,Motor motor,Progress prefs,float cameraX,float cameraY,float halfWidth,float time)
+        public void Draw(Course course,Motor motor,Progress prefs,float cameraX,float cameraY,float halfWidth,float halfHeight,float time)
         {
             var p=prefs.Dusk?dusk:day;
             ink.Dark=p[6];ink.Cream=p[1];ink.Coral=p[7];ink.Teal=p[4];ink.Begin();
@@ -77,7 +83,7 @@ namespace Fosters.Studio
             float ground=course.Ground(r.X);
             if(ground>-50)ink.Ellipse(new Vector2(pos.x,ground-cameraY+.02f),.32f,.025f,Color.Lerp(p[6],p[1],.2f));
             module.DrawRider(ink,motor,pos,time);
-            ink.End();
+            layer.Flush();
         }
         void Hills(float left,float right,float baseline,float offset,float height,Color c,float phase)
         {

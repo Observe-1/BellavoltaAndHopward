@@ -8,7 +8,7 @@ namespace Fosters.Studio
         StudioApp app;RectTransform root,safe;Font font;Text distance,feedback,lesson;Rect oldSafe;int oldW,oldH;Color ink,cream;
         public void Initialize(StudioApp a)
         {
-            app=a;font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            app=a;font=Resources.Load<Font>("Fonts/Jost-Regular");if(!font)font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var canvas=new GameObject("Safe-area interface",typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
             canvas.GetComponent<Canvas>().renderMode=RenderMode.ScreenSpaceOverlay;
             var scaler=canvas.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(960,540);scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;scaler.matchWidthOrHeight=1;
@@ -31,6 +31,8 @@ namespace Fosters.Studio
         {
             var r=Rect(text,safe,anchor,anchor,pos,size);var t=r.gameObject.AddComponent<Text>();t.font=font;t.text=text;t.fontSize=fontSize;t.alignment=alignment;t.color=color;t.raycastTarget=false;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Truncate;return t;
         }
+        // Letter spacing as a fraction of the font size.
+        static Text Track(Text t,float em){var tr=t.gameObject.AddComponent<Tracking>();tr.Em=em;return t;}
         Button Button(string text,Vector2 anchor,Vector2 pos,Vector2 size,System.Action click,bool filled=true)
         {
             var r=Rect(text,safe,anchor,anchor,pos,size);var image=r.gameObject.AddComponent<Image>();image.color=filled?ink:new Color(ink.r,ink.g,ink.b,.07f);
@@ -52,9 +54,11 @@ namespace Fosters.Studio
             var palette=app.Module.Palette(app.Progress.Dusk);ink=palette[6];cream=palette[1];
             if(app.State==ScreenState.Playing)
             {
-                distance=Label("",new Vector2(0,1),new Vector2(148,-36),new Vector2(240,45),19,TextAnchor.MiddleLeft,ink);
-                Button("II",Vector2.one,new Vector2(-50,-42),new Vector2(66,66),app.Pause,false);
-                feedback=Label("",new Vector2(.5f,1),new Vector2(0,-40),new Vector2(440,48),17,TextAnchor.MiddleCenter,ink);
+                distance=Label("",new Vector2(0,1),new Vector2(160,-40),new Vector2(280,45),20,TextAnchor.MiddleLeft,ink);Track(distance,.10f);
+                var pauseButton=Button("",Vector2.one,new Vector2(-50,-42),new Vector2(66,66),app.Pause,false);
+                pauseButton.targetGraphic.color=new Color(ink.r,ink.g,ink.b,0);
+                for(int i=-1;i<=1;i+=2){var bar=Rect("Pause bar",pauseButton.transform,new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(i*7,0),new Vector2(7,26));var img=bar.gameObject.AddComponent<Image>();img.color=ink;img.raycastTarget=false;}
+                feedback=Label("",new Vector2(.5f,1),new Vector2(0,-40),new Vector2(520,48),17,TextAnchor.MiddleCenter,ink);Track(feedback,.22f);
                 lesson=Label("",new Vector2(.5f,0),new Vector2(0,38),new Vector2(520,48),16,TextAnchor.MiddleCenter,cream);
                 if(app.Progress.Buttons)
                 {
@@ -65,14 +69,14 @@ namespace Fosters.Studio
             }
             // Left paper field leaves the town and rider visible; no dashboard tiles.
             var paper=Rect("Warm paper",safe,Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero);paper.gameObject.AddComponent<Image>().color=new Color(cream.r,cream.g,cream.b,app.State==ScreenState.Home?.90f:.96f);
-            Label("F O S T E R S D I G I T A L",new Vector2(0,1),new Vector2(174,-35),new Vector2(290,30),11,TextAnchor.MiddleLeft,ink);
-            Label(app.Module.Place.ToUpperInvariant(),new Vector2(1,1),new Vector2(-180,-35),new Vector2(300,30),11,TextAnchor.MiddleRight,ink);
+            Track(Label("FOSTERSDIGITAL",new Vector2(0,1),new Vector2(174,-35),new Vector2(290,30),12,TextAnchor.MiddleLeft,ink),.45f);
+            Track(Label(app.Module.Place.ToUpperInvariant(),new Vector2(1,1),new Vector2(-180,-35),new Vector2(300,30),12,TextAnchor.MiddleRight,ink),.3f);
             var mid=new Vector2(.5f,.5f);
             if(app.State==ScreenState.Home)
             {
                 Label(app.Module.Title,mid,new Vector2(0,125),new Vector2(700,100),70,TextAnchor.MiddleCenter,ink);
                 Label(app.Module.Tagline,mid,new Vector2(0,55),new Vector2(620,44),18,TextAnchor.MiddleCenter,ink);
-                Button("Begin a journey  →",mid,new Vector2(0,-24),new Vector2(300,64),()=>app.StartRun(NextOuting(),false));
+                Button("Begin a journey  ›",mid,new Vector2(0,-24),new Vector2(300,64),()=>app.StartRun(NextOuting(),false));
                 Button("Route journal",mid,new Vector2(-140,-100),new Vector2(260,62),()=>app.Change(ScreenState.Journal),false);
                 Button("Flow run",mid,new Vector2(140,-100),new Vector2(260,62),()=>app.StartRun(0,true),false);
                 Button("Settings",mid,new Vector2(0,-174),new Vector2(200,62),app.Settings,false);
@@ -102,7 +106,7 @@ namespace Fosters.Studio
                 bool pause=app.State==ScreenState.Paused,arrival=app.State==ScreenState.Arrival;
                 Label(pause?"Take a breath":arrival?"You have arrived":"Find your rhythm",mid,new Vector2(0,132),new Vector2(720,80),46,TextAnchor.MiddleCenter,ink);
                 Label(pause?app.Module.Outings[app.Outing]:arrival?(app.Flow?"A line worth remembering · "+app.Score.Banked+" points":app.Module.Outings[app.Outing]+" · added to your journal"):app.Feedback,mid,new Vector2(0,66),new Vector2(690,50),18,TextAnchor.MiddleCenter,ink);
-                Button(pause?"Continue  →":arrival?"Ride again  →":app.Flow?"Try again  →":"Back to the last landmark  →",mid,new Vector2(0,-10),new Vector2(360,64),()=>{if(pause)app.Change(ScreenState.Playing);else if(arrival)app.StartRun(app.Outing,app.Flow);else app.Recover();});
+                Button(pause?"Continue  ›":arrival?"Ride again  ›":app.Flow?"Try again  ›":"Back to the last landmark  ›",mid,new Vector2(0,-10),new Vector2(360,64),()=>{if(pause)app.Change(ScreenState.Playing);else if(arrival)app.StartRun(app.Outing,app.Flow);else app.Recover();});
                 Button(pause?"Settings":"Route journal",mid,new Vector2(-138,-90),new Vector2(260,62),()=>{if(pause)app.Settings();else app.Change(ScreenState.Journal);},false);
                 Button(pause?"Restart":"Home",mid,new Vector2(138,-90),new Vector2(260,62),()=>{if(pause)app.StartRun(app.Outing,app.Flow);else app.Change(ScreenState.Home);},false);
                 if(pause)Button("Return home",mid,new Vector2(0,-164),new Vector2(260,62),()=>app.Change(ScreenState.Home),false);
@@ -113,7 +117,7 @@ namespace Fosters.Studio
         public void Refresh()
         {
             if(oldSafe!=Screen.safeArea || oldW!=Screen.width || oldH!=Screen.height)Resize();
-            if(distance)distance.text=app.Flow?Mathf.FloorToInt(app.Motor.Pose.X)+" m     "+app.Score.Banked+(app.Score.Pending>0?"  +"+app.Score.Pending+" ×"+app.Score.Multiplier:""):app.Module.Outings[app.Outing];
+            if(distance)distance.text=app.Flow?Mathf.FloorToInt(app.Motor.Pose.X).ToString("N0",System.Globalization.CultureInfo.InvariantCulture)+" m     "+app.Score.Banked+(app.Score.Pending>0?"  +"+app.Score.Pending+" ×"+app.Score.Multiplier:""):app.Module.Outings[app.Outing];
             if(feedback)feedback.text=app.FeedbackTime>0?app.Feedback:"";
             if(lesson)
             {
@@ -121,6 +125,23 @@ namespace Fosters.Studio
                 var lessons=app.Module.LessonsFor(app.Outing);
                 lesson.text=!app.Progress.Buttons && lessons!=null && index<lessons.Length?lessons[index]:"";
             }
+        }
+    }
+    // Letter spacing for single-line legacy Text: shifts each glyph quad and re-centres by alignment.
+    public sealed class Tracking : BaseMeshEffect
+    {
+        public float Em=.15f;
+        readonly System.Collections.Generic.List<UIVertex> stream=new System.Collections.Generic.List<UIVertex>();
+        public override void ModifyMesh(VertexHelper vh)
+        {
+            if(!IsActive())return;
+            var text=GetComponent<Text>();if(!text)return;
+            stream.Clear();vh.GetUIVertexStream(stream);int quads=stream.Count/6;if(quads<2)return;
+            float spacing=text.fontSize*Em,total=spacing*(quads-1);
+            var a=text.alignment;
+            float start=(a==TextAnchor.UpperCenter||a==TextAnchor.MiddleCenter||a==TextAnchor.LowerCenter)?-total*.5f:(a==TextAnchor.UpperRight||a==TextAnchor.MiddleRight||a==TextAnchor.LowerRight)?-total:0;
+            for(int q=0;q<quads;q++)for(int k=0;k<6;k++){var v=stream[q*6+k];v.position.x+=start+q*spacing;stream[q*6+k]=v;}
+            vh.Clear();vh.AddUIVertexTriangleStream(stream);
         }
     }
     public sealed class TouchControl : MonoBehaviour,IPointerDownHandler,IPointerUpHandler,IPointerExitHandler

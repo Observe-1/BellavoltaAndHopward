@@ -24,6 +24,11 @@ namespace Fosters.Studio
         public virtual string PreparedHint => null;
         // Teaching lines per outing; defaults to the shared lesson list.
         public virtual string[] LessonsFor(int outing) => Lessons;
+        // Orthographic half-height of the landscape camera, and how far above the ground it rests.
+        public virtual float CameraSize => 7.6f;
+        public virtual float CameraLift => 3.2f;
+        // Products may supply a richer layered scenery; the default is the minimalist landscape.
+        public virtual IScenery CreateScenery(Transform root) => new Landscape(InkLayer.Create("Original vector scene",0,root),this);
     }
 
     public struct RiderPose
