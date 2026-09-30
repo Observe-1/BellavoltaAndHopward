@@ -35,7 +35,7 @@ namespace Fosters.Studio
         static Text Track(Text t,float em){var tr=t.gameObject.AddComponent<Tracking>();tr.Em=em;return t;}
         Button Button(string text,Vector2 anchor,Vector2 pos,Vector2 size,System.Action click,bool filled=true)
         {
-            var r=Rect(text,safe,anchor,anchor,pos,size);var image=r.gameObject.AddComponent<Image>();image.color=filled?ink:new Color(ink.r,ink.g,ink.b,.07f);
+            var r=Rect(text,safe,anchor,anchor,pos,size);var image=r.gameObject.AddComponent<Image>();image.color=filled?ink:new Color(cream.r,cream.g,cream.b,.88f);
             var button=r.gameObject.AddComponent<Button>();button.targetGraphic=image;var colors=button.colors;colors.highlightedColor=new Color(.94f,.91f,.85f);colors.pressedColor=new Color(.76f,.75f,.72f);button.colors=colors;
             var tr=Rect("Label",r,Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero);var label=tr.gameObject.AddComponent<Text>();label.font=font;label.text=text;label.fontSize=16;label.alignment=TextAnchor.MiddleCenter;label.color=filled?cream:ink;label.raycastTarget=false;
             if(click!=null)button.onClick.AddListener(()=>click());return button;
@@ -68,7 +68,8 @@ namespace Fosters.Studio
                 return;
             }
             // Left paper field leaves the town and rider visible; no dashboard tiles.
-            var paper=Rect("Warm paper",safe,Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero);paper.gameObject.AddComponent<Image>().color=new Color(cream.r,cream.g,cream.b,app.State==ScreenState.Home?.90f:.96f);
+            // Home lets the illustrated scene through; other menus sit on warm paper.
+            var paper=Rect("Warm paper",safe,Vector2.zero,Vector2.one,Vector2.zero,Vector2.zero);paper.gameObject.AddComponent<Image>().color=new Color(cream.r,cream.g,cream.b,app.State==ScreenState.Home?.45f:.92f);
             Track(Label("FOSTERSDIGITAL",new Vector2(0,1),new Vector2(174,-35),new Vector2(290,30),12,TextAnchor.MiddleLeft,ink),.45f);
             Track(Label(app.Module.Place.ToUpperInvariant(),new Vector2(1,1),new Vector2(-180,-35),new Vector2(300,30),12,TextAnchor.MiddleRight,ink),.3f);
             var mid=new Vector2(.5f,.5f);

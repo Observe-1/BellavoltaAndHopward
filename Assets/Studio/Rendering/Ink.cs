@@ -12,12 +12,14 @@ namespace Fosters.Studio
         public Color Dark, Cream, Coral, Teal;
         // Translation applied to every vertex; used by baked tiles and the preview compositor.
         public Vector2 Offset;
+        // Uniform scale applied before Offset; baked parallax tiles use it to set their depth scale.
+        public float Scale=1;
         // Screen density used for curve level of detail (pixels per world unit at rest).
         public static float PixelsPerUnit=75;
         public int Count=>Indices.Count/3;
         public void Begin(){Vertices.Clear();Colors.Clear();Indices.Clear();}
         public void End(){}
-        int V(Vector2 p,Color c){Vertices.Add(new Vector3(p.x+Offset.x,p.y+Offset.y,0));Colors.Add(c);return Vertices.Count-1;}
+        int V(Vector2 p,Color c){Vertices.Add(new Vector3(p.x*Scale+Offset.x,p.y*Scale+Offset.y,0));Colors.Add(c);return Vertices.Count-1;}
         public static int Segments(float radius,int min=6,int max=72)
         {
             float px=Mathf.Max(.5f,radius*PixelsPerUnit);
@@ -33,7 +35,7 @@ namespace Fosters.Studio
         {Quad(new Vector2(x,y),new Vector2(x+w,y),new Vector2(x+w,y+h),new Vector2(x,y+h),bottom,bottom,top,top);}
         public void Ellipse(Vector2 center,float rx,float ry,Color color,int sides=-1)
         {
-            if(sides<3)sides=Segments(Mathf.Max(rx,ry));
+            if(sides<3)sides=Segments(Mathf.Max(rx,ry)*Scale);
             int c=V(center,color),first=V(center+new Vector2(rx,0),color),last=first;
             for(int i=1;i<=sides;i++)
             {
@@ -44,7 +46,7 @@ namespace Fosters.Studio
         // Filled elliptical sector from angle a0 to a1 (degrees, counter-clockwise).
         public void Sector(Vector2 center,float rx,float ry,float a0,float a1,Color color,int sides=-1)
         {
-            if(sides<2)sides=Mathf.Max(2,Mathf.CeilToInt(Segments(Mathf.Max(rx,ry))*Mathf.Abs(a1-a0)/360f));
+            if(sides<2)sides=Mathf.Max(2,Mathf.CeilToInt(Segments(Mathf.Max(rx,ry)*Scale)*Mathf.Abs(a1-a0)/360f));
             int c=V(center,color),last=V(center+new Vector2(Mathf.Cos(a0*Mathf.Deg2Rad)*rx,Mathf.Sin(a0*Mathf.Deg2Rad)*ry),color);
             for(int i=1;i<=sides;i++)
             {float a=Mathf.Lerp(a0,a1,i/(float)sides)*Mathf.Deg2Rad;int next=V(center+new Vector2(Mathf.Cos(a)*rx,Mathf.Sin(a)*ry),color);Indices.Add(c);Indices.Add(last);Indices.Add(next);last=next;}

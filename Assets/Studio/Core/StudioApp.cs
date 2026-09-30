@@ -14,7 +14,7 @@ namespace Fosters.Studio
         public bool Flow;public int Outing;public string Feedback="";public float FeedbackTime;
         public float CameraX,CameraY=3.2f;public float RunTime;
         StudioUI ui;IScenery scenery;Camera view;Soundscape sound;
-        float accumulator,camVelocity;const float Step=1f/120;ScreenState settingsReturn;
+        float accumulator,camVelocity,supportY;const float Step=1f/120;ScreenState settingsReturn;
         public void Initialize(GameModule module)
         {
             Module=module;Progress=Progress.Load(module.Slug);
@@ -28,7 +28,7 @@ namespace Fosters.Studio
             LoadOuting(0);Change(ScreenState.Home);
         }
         void LoadOuting(int index)
-        {Outing=index;Course=Module.CreateCourse(index);Course.Validate();Motor=Module.CreateMotor(Course,Award,Stumble);Motor.Wobbled=Wobble;Motor.Reset(1);Motor.Interpolate(1);Score=new LineScore(Module.MultiplierCap);RunTime=0;CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*.36f;CameraY=Course.Ground(Motor.Pose.X)+Module.CameraLift;camVelocity=0;accumulator=0;}
+        {Outing=index;Course=Module.CreateCourse(index);Course.Validate();Motor=Module.CreateMotor(Course,Award,Stumble);Motor.Wobbled=Wobble;Motor.Reset(1);Motor.Interpolate(1);Score=new LineScore(Module.MultiplierCap);RunTime=0;CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*.36f;CameraY=Course.Ground(Motor.Pose.X)+Module.CameraLift;camVelocity=0;accumulator=0;supportY=Motor.Pose.Y;}
         public void StartRun(int outing,bool flow)
         {Flow=flow;LoadOuting(outing);Feedback="";FeedbackTime=0;Change(ScreenState.Playing);}
         public void Change(ScreenState next)
@@ -43,7 +43,7 @@ namespace Fosters.Studio
         public void Recover()
         {
             if(Flow){StartRun(Outing,true);return;}
-            Motor.Reset(Course.Checkpoint(Motor.Pose.X));Motor.Interpolate(1);camVelocity=0;
+            Motor.Reset(Course.Checkpoint(Motor.Pose.X));Motor.Interpolate(1);supportY=Motor.Pose.Y;camVelocity=0;
             CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*.36f;CameraY=Course.Ground(Motor.Pose.X)+Module.CameraLift;Change(ScreenState.Playing);
         }
         void Award(string name,int points)
@@ -75,7 +75,13 @@ namespace Fosters.Studio
                 Motor.Interpolate(Mathf.Clamp01(accumulator/Step));
                 float target=Motor.RenderPose.X+view.orthographicSize*view.aspect*.36f;
                 CameraX=Mathf.SmoothDamp(CameraX,target,ref camVelocity,Progress.ReducedMotion?.08f:.18f,Mathf.Infinity,dt);
+                // Follow sustained support (road or a raised promenade the rider lands on), never each bounce;
+                // lift early only if a big arc would leave the frame.
                 float routeY=Course.Ground(Motor.Pose.X);if(routeY<-50)routeY=0;
+                if(Motor.Pose.Grounded)supportY=Motor.Pose.Y;else if(Motor.Pose.Y<supportY-.3f)supportY=Mathf.Max(routeY,Motor.Pose.Y);
+                routeY=Mathf.Max(routeY,supportY);
+                float overTop=Motor.RenderPose.Y+2.1f-(CameraY+view.orthographicSize);
+                if(overTop>0)CameraY+=overTop*(1-Mathf.Exp(-dt*5));
                 CameraY=Mathf.Lerp(CameraY,routeY+Module.CameraLift,1-Mathf.Exp(-dt*(Progress.ReducedMotion?.25f:.65f)));
                 FeedbackTime=Mathf.Max(0,FeedbackTime-dt);
             }
