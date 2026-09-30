@@ -3,12 +3,12 @@ namespace Fosters.Studio
 {
     public sealed class Landscape
     {
-        readonly Ink ink;readonly GameModule module;
-        public Landscape(Ink i,GameModule m){ink=i;module=m;}
+        readonly Ink ink;readonly GameModule module;readonly Color[] day,dusk;
+        public Landscape(Ink i,GameModule m){ink=i;module=m;day=m.Palette(false);dusk=m.Palette(true);}
         static float Hash(int n){return Mathf.Repeat(Mathf.Sin(n*127.1f+311.7f)*43758.5453f,1);}
         public void Draw(Course course,Motor motor,Progress prefs,float cameraX,float cameraY,float halfWidth,float time)
         {
-            var p=module.Palette(prefs.Dusk);
+            var p=prefs.Dusk?dusk:day;
             ink.Dark=p[6];ink.Cream=p[1];ink.Coral=p[7];ink.Teal=p[4];ink.Begin();
             float left=-halfWidth-2,right=halfWidth+2;
             ink.Rect(left,-12,right-left,24,p[0]);
@@ -109,3 +109,4 @@ namespace Fosters.Studio
         {ink.Rect(x,y-.18f,.42f,.18f,p[5]);ink.Ellipse(new Vector2(x+.12f,y+.12f),.18f,.21f,Color.Lerp(p[4],p[6],.2f),12);ink.Ellipse(new Vector2(x+.33f,y+.09f),.17f,.16f,Color.Lerp(p[4],p[6],.2f),12);}
     }
 }
+

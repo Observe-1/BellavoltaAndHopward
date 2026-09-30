@@ -36,7 +36,7 @@ namespace Fosters.Studio
             return found;
         }
         public bool NearLip(float x)
-        { foreach(var s in Surfaces) if(s.Lip && x>=s.End-2.2f && x<=s.End+.2f)return true; return false; }
+        { foreach(var s in Surfaces) if(s.Lip && x>=s.End-.9f && x<=s.End+.2f)return true; return false; }
         public float Checkpoint(float x) { return Mathf.Max(1,Mathf.Floor((x-2)/60)*60+1); }
         public void Validate()
         {
@@ -46,3 +46,4 @@ namespace Fosters.Studio
         }
     }
 }
+
