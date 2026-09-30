@@ -73,7 +73,16 @@ namespace Fosters.Studio
             Track(Label("FOSTERSDIGITAL",new Vector2(0,1),new Vector2(174,-35),new Vector2(290,30),12,TextAnchor.MiddleLeft,ink),.45f);
             Track(Label(app.Module.Place.ToUpperInvariant(),new Vector2(1,1),new Vector2(-180,-35),new Vector2(300,30),12,TextAnchor.MiddleRight,ink),.3f);
             var mid=new Vector2(.5f,.5f);
-            if(app.State==ScreenState.Home)
+            var inv=System.Globalization.CultureInfo.InvariantCulture;
+            if(app.State==ScreenState.Home && app.Module.Endless)
+            {
+                Label(app.Module.Title,mid,new Vector2(0,125),new Vector2(700,100),70,TextAnchor.MiddleCenter,ink);
+                Label(app.Module.Tagline,mid,new Vector2(0,55),new Vector2(620,44),18,TextAnchor.MiddleCenter,ink);
+                Button("Ride  ›",mid,new Vector2(0,-24),new Vector2(300,64),()=>app.StartRun(0,true));
+                Button("Settings",mid,new Vector2(0,-100),new Vector2(220,62),app.Settings,false);
+                if(app.Progress.BestDistance>0)Track(Label("BEST  "+app.Progress.BestDistance.ToString("N0",inv)+" m  ·  "+app.Progress.Best.ToString("N0",inv)+" POINTS",new Vector2(.5f,0),new Vector2(0,40),new Vector2(640,30),13,TextAnchor.MiddleCenter,ink),.2f);
+            }
+            else if(app.State==ScreenState.Home)
             {
                 Label(app.Module.Title,mid,new Vector2(0,125),new Vector2(700,100),70,TextAnchor.MiddleCenter,ink);
                 Label(app.Module.Tagline,mid,new Vector2(0,55),new Vector2(620,44),18,TextAnchor.MiddleCenter,ink);
@@ -102,6 +111,19 @@ namespace Fosters.Studio
                 Button("Sound  "+Mathf.RoundToInt(app.Progress.Effects*100)+"%",mid,new Vector2(175,-18),new Vector2(330,62),()=>{app.Progress.Effects=NextVolume(app.Progress.Effects);app.Progress.Save();Rebuild();},false);
                 Button("Done",mid,new Vector2(175,-90),new Vector2(330,62),app.CloseSettings);
             }
+            else if(app.Module.Endless && (app.State==ScreenState.Recovery||app.State==ScreenState.Paused))
+            {
+                bool pause=app.State==ScreenState.Paused;
+                int metres=Mathf.FloorToInt(app.Motor.Pose.X);
+                Label(metres.ToString("N0",inv)+" m",mid,new Vector2(0,140),new Vector2(720,80),52,TextAnchor.MiddleCenter,ink);
+                string line=app.Score.Banked.ToString("N0",inv)+" points  ·  "+app.Motor.Pickups+" lemons";
+                Label(pause?line:app.Feedback,mid,new Vector2(0,78),new Vector2(690,40),18,TextAnchor.MiddleCenter,ink);
+                if(!pause)Track(Label(app.NewBest?"NEW BEST  ·  "+line.ToUpperInvariant():line.ToUpperInvariant(),mid,new Vector2(0,44),new Vector2(690,30),13,TextAnchor.MiddleCenter,ink),.18f);
+                Button(pause?"Continue  ›":"Ride again  ›",mid,new Vector2(0,-24),new Vector2(360,64),()=>{if(pause)app.Change(ScreenState.Playing);else app.StartRun(0,true);});
+                Button(pause?"Settings":"Home",mid,new Vector2(-138,-104),new Vector2(260,62),()=>{if(pause)app.Settings();else app.Change(ScreenState.Home);},false);
+                Button(pause?"Restart":"Settings",mid,new Vector2(138,-104),new Vector2(260,62),()=>{if(pause)app.StartRun(0,true);else app.Settings();},false);
+                if(pause)Button("Return home",mid,new Vector2(0,-178),new Vector2(260,62),()=>app.Change(ScreenState.Home),false);
+            }
             else
             {
                 bool pause=app.State==ScreenState.Paused,arrival=app.State==ScreenState.Arrival;
@@ -124,7 +146,8 @@ namespace Fosters.Studio
             {
                 int index=Mathf.FloorToInt(app.RunTime/7);
                 var lessons=app.Module.LessonsFor(app.Outing);
-                lesson.text=!app.Progress.Buttons && lessons!=null && index<lessons.Length?lessons[index]:"";
+                bool teach=!app.Module.Endless || app.Progress.Runs<3;
+                lesson.text=teach && !app.Progress.Buttons && lessons!=null && index<lessons.Length?lessons[index]:"";
             }
         }
     }

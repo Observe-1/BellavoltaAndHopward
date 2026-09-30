@@ -13,11 +13,14 @@ namespace Fosters.Studio
         public float Height(float x) { float t=Mathf.Clamp01((x-Start)/(End-Start)); return Mathf.Lerp(A,B,t*t*(3-2*t)); }
         public float Slope(float x) { float t=Mathf.Clamp01((x-Start)/(End-Start)); return (B-A)*6*t*(1-t)/(End-Start); }
     }
-    public sealed class Course
+    public class Course
     {
         public readonly List<Surface> Surfaces=new List<Surface>();
         public readonly List<float> Arches=new List<float>();
         public float Length;
+        // Endless courses stream surfaces ahead of the rider; Length is infinite.
+        public bool Endless=>float.IsPositiveInfinity(Length);
+        public virtual void EnsureAhead(float x){}
         public float Ground(float x)
         { foreach(var s in Surfaces) if(!s.Upper && x>=s.Start && x<=s.End) return s.Height(x); return -100; }
         public bool Support(float x,float reference,out Surface result)
@@ -42,7 +45,7 @@ namespace Fosters.Studio
         {
             if(Length<=0 || Surfaces.Count==0) throw new System.InvalidOperationException("Empty course");
             foreach(var s in Surfaces) if(s.End<=s.Start || float.IsNaN(s.A+s.B)) throw new System.InvalidOperationException("Invalid surface");
-            for(float x=1;x<Length;x+=60) if(Ground(x)<-50) throw new System.InvalidOperationException("Checkpoint lacks ground");
+            if(!Endless)for(float x=1;x<Length;x+=60) if(Ground(x)<-50) throw new System.InvalidOperationException("Checkpoint lacks ground");
         }
     }
 }

@@ -29,11 +29,19 @@ namespace Fosters.Studio
         public virtual float CameraLift => 3.2f;
         // Products may supply a richer layered scenery; the default is the minimalist landscape.
         public virtual IScenery CreateScenery(Transform root) => new Landscape(InkLayer.Create("Original vector scene",0,root),this);
+        // Endless products: one continuous run, no outings or arrivals; a crash ends the run.
+        public virtual bool Endless => false;
+        // Camera half-height for the current moment (e.g. widen with speed).
+        public virtual float CameraSizeFor(Motor motor) => CameraSize;
+        // Where the rider sits across the screen, 0..1 from the left.
+        public virtual float RiderAnchorFor(Motor motor) => .32f;
     }
 
     public struct RiderPose
     {
         public float X, Y, VelocityY, Pitch, Compression, Trick, Lean;
+        // Product-defined presentation state (e.g. grinding, crashed) and its clock.
+        public int Mode; public float ModeTime;
         public bool Grounded, Prepared;
         public int TrickKind;
         public static RiderPose Lerp(RiderPose a, RiderPose b, float t)
@@ -52,6 +60,8 @@ namespace Fosters.Studio
         protected readonly System.Action<string> Stumble;
         public bool UpperDiscovered;
         public float ContactPulse;
+        // Collected pickups this run and a pulse when the rider leaves the ground on purpose.
+        public int Pickups; public float JumpPulse;
         public abstract float Speed { get; }
         public abstract void Step(float dt, Gesture input);
         public abstract void Reset(float x);

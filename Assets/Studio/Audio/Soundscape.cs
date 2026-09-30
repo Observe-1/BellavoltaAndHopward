@@ -4,14 +4,14 @@ namespace Fosters.Studio
     // Deterministic original synthesis; no samples or third-party recordings.
     public sealed class Soundscape : MonoBehaviour
     {
-        StudioApp app;AudioSource music,effects,engine;AudioClip[] ticks;AudioClip accept,success;float lastPulse;int tickIndex;
+        StudioApp app;AudioSource music,effects,engine;AudioClip[] ticks;AudioClip accept,success,thud;float lastPulse;int tickIndex;
         public void Initialize(StudioApp owner)
         {
             app=owner;music=gameObject.AddComponent<AudioSource>();effects=gameObject.AddComponent<AudioSource>();engine=gameObject.AddComponent<AudioSource>();
             music.loop=true;music.clip=MakeMusic();music.Play();
             // Three rounded contact variants so repeated contacts do not machine-gun one sample.
             ticks=new[]{Tone("Contact A",138,.12f,14),Tone("Contact B",146,.13f,13),Tone("Contact C",131,.12f,15)};
-            accept=Tone("Accepted input",262,.09f,22);success=Tone("Landed line",440,.38f,9);
+            accept=Tone("Accepted input",262,.09f,22);thud=Tone("Crash",82,.45f,7);success=Tone("Landed line",440,.38f,9);
             if(app.Module.IsMotorbike){engine.loop=true;engine.clip=MakeEngine();engine.Play();}
         }
         void Update()
@@ -27,6 +27,8 @@ namespace Fosters.Studio
         }
         // Accepted preparation: quiet cue plus the lightest haptic tap.
         public void Accept(){effects.PlayOneShot(accept,.35f);if(app.Progress.Haptics)Haptics.Light();}
+        public void Jump(){effects.PlayOneShot(accept,.28f);}
+        public void Crash(){effects.PlayOneShot(thud,.6f);if(app.Progress.Haptics)Haptics.Medium();}
         // Completed trick credited at a supported landing.
         public void Reward(){effects.PlayOneShot(success,.5f);if(app.Progress.Haptics)Haptics.Success();}
         static AudioClip Tone(string name,float hz,float seconds,float decay)
@@ -52,7 +54,7 @@ namespace Fosters.Studio
         void OnDestroy()
         {
             if(music && music.clip)Destroy(music.clip);if(engine && engine.clip)Destroy(engine.clip);
-            if(ticks!=null)foreach(var t in ticks)if(t)Destroy(t);if(accept)Destroy(accept);if(success)Destroy(success);
+            if(ticks!=null)foreach(var t in ticks)if(t)Destroy(t);if(accept)Destroy(accept);if(thud)Destroy(thud);if(success)Destroy(success);
         }
     }
 
@@ -64,9 +66,11 @@ namespace Fosters.Studio
         [System.Runtime.InteropServices.DllImport("__Internal")] static extern void StudioHapticImpact(int style);
         [System.Runtime.InteropServices.DllImport("__Internal")] static extern void StudioHapticSuccess();
         public static void Light(){StudioHapticImpact(0);}
+        public static void Medium(){StudioHapticImpact(1);}
         public static void Success(){StudioHapticSuccess();}
 #else
         public static void Light(){}
+        public static void Medium(){}
         public static void Success(){}
 #endif
     }

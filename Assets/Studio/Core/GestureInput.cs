@@ -2,14 +2,14 @@ using UnityEngine;
 namespace Fosters.Studio
 {
     public struct Gesture
-    { public bool Held, Tap, Up, Down, BeganGrounded; public float HeldTime; }
+    { public bool Held, Tap, Up, Down, BeganGrounded, Pressed, Released; public float HeldTime; }
     public sealed class GestureInput
     {
         bool active, grounded; Vector2 start; float began; int finger=-1; Gesture pending;
         public void Cancel(){active=false;finger=-1;pending=default;}
         public void Button(int action,bool on,bool isGrounded)
         {
-            if(action==0){ if(on){active=true;grounded=isGrounded;began=Time.unscaledTime;}else active=false; }
+            if(action==0){ if(on){active=true;grounded=isGrounded;began=Time.unscaledTime;pending.Pressed=true;}else{active=false;pending.Released=true;} }
             if(action==1 && on) pending.Tap=true;
             if(action==2 && on){pending.Up=true;pending.BeganGrounded=isGrounded;}
             if(action==3 && on){pending.Down=true;pending.BeganGrounded=isGrounded;}
@@ -38,9 +38,10 @@ namespace Fosters.Studio
             if(Input.GetKeyDown(KeyCode.UpArrow)){pending.Up=true;pending.BeganGrounded=isGrounded;active=false;}
             if(Input.GetKeyDown(KeyCode.DownArrow)){pending.Down=true;pending.BeganGrounded=isGrounded;active=false;}
         }
-        void Begin(Vector2 p,bool g,int id){active=true;start=p;grounded=g;finger=id;began=Time.unscaledTime;}
+        void Begin(Vector2 p,bool g,int id){active=true;start=p;grounded=g;finger=id;began=Time.unscaledTime;pending.Pressed=true;}
         void End(Vector2 p)
         {
+            pending.Released=true;
             float elapsed=Time.unscaledTime-began;
             float delta=(p.y-start.y)*540f/Screen.height;
             pending.BeganGrounded=grounded;

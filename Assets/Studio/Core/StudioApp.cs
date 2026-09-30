@@ -28,9 +28,9 @@ namespace Fosters.Studio
             LoadOuting(0);Change(ScreenState.Home);
         }
         void LoadOuting(int index)
-        {Outing=index;Course=Module.CreateCourse(index);Course.Validate();Motor=Module.CreateMotor(Course,Award,Stumble);Motor.Wobbled=Wobble;Motor.Reset(1);Motor.Interpolate(1);Score=new LineScore(Module.MultiplierCap);RunTime=0;CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*.36f;CameraY=Course.Ground(Motor.Pose.X)+Module.CameraLift;camVelocity=0;accumulator=0;supportY=Motor.Pose.Y;}
+        {Outing=index;Course=Module.CreateCourse(index);Course.Validate();Motor=Module.CreateMotor(Course,Award,Stumble);Motor.Wobbled=Wobble;Motor.Reset(1);Motor.Interpolate(1);Score=new LineScore(Module.MultiplierCap);RunTime=0;view.orthographicSize=Module.CameraSizeFor(Motor);CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*(1-2*Module.RiderAnchorFor(Motor));CameraY=Course.Ground(Motor.Pose.X)+Module.CameraLift;camVelocity=0;accumulator=0;supportY=Motor.Pose.Y;}
         public void StartRun(int outing,bool flow)
-        {Flow=flow;LoadOuting(outing);Feedback="";FeedbackTime=0;Change(ScreenState.Playing);}
+        {Flow=flow||Module.Endless;LoadOuting(outing);Feedback="";FeedbackTime=0;Change(ScreenState.Playing);}
         public void Change(ScreenState next)
         {
             InputReader.Cancel();Motor?.CancelInput();accumulator=0;State=next;
@@ -44,13 +44,22 @@ namespace Fosters.Studio
         {
             if(Flow){StartRun(Outing,true);return;}
             Motor.Reset(Course.Checkpoint(Motor.Pose.X));Motor.Interpolate(1);supportY=Motor.Pose.Y;camVelocity=0;
-            CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*.36f;CameraY=Course.Ground(Motor.Pose.X)+Module.CameraLift;Change(ScreenState.Playing);
+            CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*(1-2*Module.RiderAnchorFor(Motor));CameraY=Course.Ground(Motor.Pose.X)+Module.CameraLift;Change(ScreenState.Playing);
         }
         void Award(string name,int points)
         {Score.Add(name,points);Feedback=Flow?name.ToUpperInvariant()+"  +"+points:name;FeedbackTime=1.8f;sound.Reward();}
         void Wobble(string cause){Score.Clear();Feedback=cause;FeedbackTime=2.4f;}
+        public bool NewBest;
         void Stumble(string cause)
-        {Score.Clear();Feedback=cause;FeedbackTime=4;Progress.Save();Change(ScreenState.Recovery);}
+        {
+            Score.Clear();Feedback=cause;FeedbackTime=4;sound.Crash();
+            if(Module.Endless)
+            {
+                int metres=Mathf.FloorToInt(Motor.Pose.X);NewBest=Score.Banked>Progress.Best||metres>Progress.BestDistance;
+                Progress.Best=Mathf.Max(Progress.Best,Score.Banked);Progress.BestDistance=Mathf.Max(Progress.BestDistance,metres);Progress.Runs++;
+            }
+            Progress.Save();Change(ScreenState.Recovery);
+        }
         public void Hint(string text){Feedback=text;FeedbackTime=1.2f;}
         void Update()
         {
@@ -62,18 +71,21 @@ namespace Fosters.Studio
                 float dt=Mathf.Min(Time.unscaledDeltaTime,.05f);accumulator+=dt;RunTime+=dt;
                 while(accumulator>=Step && State==ScreenState.Playing)
                 {
-                    bool preparedBefore=Motor.Pose.Prepared;
+                    bool preparedBefore=Motor.Pose.Prepared;float jumpBefore=Motor.JumpPulse;
+                    Course.EnsureAhead(Motor.Pose.X+view.orthographicSize*view.aspect*2+40);
                     Motor.Previous=Motor.Pose;Motor.Step(Step,InputReader.Consume());accumulator-=Step;
+                    if(Motor.JumpPulse>jumpBefore+.3f)sound.Jump();
                     if(!preparedBefore && Motor.Pose.Prepared){if(Module.PreparedHint!=null)Hint(Module.PreparedHint);sound.Accept();}
                     Score.Tick(Step);
                     if(Motor.UpperDiscovered && (Progress.Branches&(1<<Outing))==0){Progress.Branches|=1<<Outing;Progress.Save();Hint("A different way through");}
-                    if(Motor.Pose.X>=Course.Length)
+                    if(!Course.Endless && Motor.Pose.X>=Course.Length)
                     {
                         Score.Bank();Progress.Arrivals|=1<<Outing;Progress.Best=Mathf.Max(Progress.Best,Score.Banked);Progress.Save();Change(ScreenState.Arrival);
                     }
                 }
                 Motor.Interpolate(Mathf.Clamp01(accumulator/Step));
-                float target=Motor.RenderPose.X+view.orthographicSize*view.aspect*.36f;
+                view.orthographicSize=Mathf.Lerp(view.orthographicSize,Module.CameraSizeFor(Motor),1-Mathf.Exp(-dt*1.5f));
+                float target=Motor.RenderPose.X+view.orthographicSize*view.aspect*(1-2*Module.RiderAnchorFor(Motor));
                 CameraX=Mathf.SmoothDamp(CameraX,target,ref camVelocity,Progress.ReducedMotion?.08f:.18f,Mathf.Infinity,dt);
                 // Follow sustained support (road or a raised promenade the rider lands on), never each bounce;
                 // lift early only if a big arc would leave the frame.

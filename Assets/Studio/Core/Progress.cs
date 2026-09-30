@@ -4,7 +4,7 @@ namespace Fosters.Studio
     [System.Serializable]
     public sealed class Progress
     {
-        public int Arrivals, Branches, Best;
+        public int Arrivals, Branches, Best, BestDistance, Runs;
         public bool Buttons, ReducedMotion, Contrast, Dusk, Haptics;
         public float Effects=.45f, Music=.35f;
         string key;
