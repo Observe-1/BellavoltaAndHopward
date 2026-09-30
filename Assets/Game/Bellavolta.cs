@@ -15,6 +15,7 @@ namespace Fosters.Bellavolta
         public override string PrimaryControl=>"Wheelie · hold";
         public override string SecondaryControl=>"Pop / tabletop";
         public override bool IsMotorbike=>true;
+        public override int MultiplierCap=>4;
         public override Color[] Palette(bool dusk)
         {
             string[] colors=dusk?new[]{"C99483","F1D3AB","9292AD","AF8E96","70929F","BE8A76","423C50","C77D66"}:new[]{"EAB991","F4DDB1","A7A4B8","B8A0A1","76A2AD","D19B83","493F54","C77D66"};
