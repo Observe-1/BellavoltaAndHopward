@@ -1,0 +1,16 @@
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+Builds/
+Artifacts/
+*.csproj
+*.sln
+*.slnx
+.vs/
+.idea/
+*.keystore
+*.mobileprovision
+*.p12
+work/
