@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- LaunchAgent: checks Bellavolta's TestFlight branch every 60 s. Install with install-mac.sh,
+     which replaces __HOME__ with your home folder. Separate from the Shovey and Bus Switch watchers. -->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.fostersdigital.bellavolta.testflight-watch</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>__HOME__/BellavoltaCI/watch.sh</string>
+	</array>
+	<key>StartInterval</key>
+	<integer>60</integer>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<key>LANG</key>
+		<string>en_US.UTF-8</string>
+	</dict>
+	<key>StandardOutPath</key>
+	<string>__HOME__/BellavoltaCI/watch.log</string>
+	<key>StandardErrorPath</key>
+	<string>__HOME__/BellavoltaCI/watch.log</string>
+</dict>
+</plist>
