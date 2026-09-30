@@ -53,6 +53,9 @@ namespace Fosters.Studio
         public abstract void CancelInput();
         protected Motor(Course c, System.Action<string,int> award, System.Action<string> stumble)
         { Course=c; Award=award; Stumble=stumble; }
+        // Recoverable mistake: the run continues, only the unbanked line is lost.
+        public System.Action<string> Wobbled;
+        protected void Wobble(string cause) { Wobbled?.Invoke(cause); }
         public void Interpolate(float alpha) { RenderPose=RiderPose.Lerp(Previous,Pose,alpha); }
         protected void Land(float y, bool upper)
         { Pose.Y=y; Pose.VelocityY=0; Pose.Grounded=true; ContactPulse=1; if(upper) UpperDiscovered=true; }
