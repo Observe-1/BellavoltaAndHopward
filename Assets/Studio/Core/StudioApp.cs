@@ -61,7 +61,9 @@ namespace Fosters.Studio
                 float dt=Mathf.Min(Time.unscaledDeltaTime,.05f);accumulator+=dt;RunTime+=dt;
                 while(accumulator>=Step && State==ScreenState.Playing)
                 {
+                    bool preparedBefore=Motor.Pose.Prepared;
                     Motor.Previous=Motor.Pose;Motor.Step(Step,InputReader.Consume());accumulator-=Step;
+                    if(!preparedBefore && Motor.Pose.Prepared){Hint("High rebound");sound.Cue(false);}
                     Score.Tick(Step);
                     if(Motor.UpperDiscovered && (Progress.Branches&(1<<Outing))==0){Progress.Branches|=1<<Outing;Progress.Save();Hint("A different way through");}
                     if(Motor.Pose.X>=Course.Length)

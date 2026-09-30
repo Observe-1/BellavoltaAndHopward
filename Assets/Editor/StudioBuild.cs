@@ -90,8 +90,9 @@ namespace Fosters.Studio.Editor
                 var cam=Camera.main; if(!cam)cam=UnityEngine.Object.FindAnyObjectByType<Camera>();
                 var rt=new RenderTexture(1560,720,24){antiAliasing=4};var tex=new Texture2D(1560,720,TextureFormat.RGB24,false);
                 cam.targetTexture=rt;cam.aspect=1560f/720f;
-                foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>())
                 {canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=cam;canvas.planeDistance=1;}
+                app.CameraX=app.Motor.RenderPose.X+cam.orthographicSize*cam.aspect*.36f;
                 app.RenderFrame();Canvas.ForceUpdateCanvases();cam.Render();RenderTexture.active=rt;tex.ReadPixels(new Rect(0,0,1560,720),0,0);tex.Apply();File.WriteAllBytes("Artifacts/"+Current.slug+"-scene.png",tex.EncodeToPNG());
                 cam.targetTexture=null;RenderTexture.active=null;UnityEngine.Object.Destroy(rt);UnityEngine.Object.Destroy(tex);
                 Debug.Log("SMOKE PASS: "+Current.title+" boot, movement, pause/resume. x="+app.Motor.Pose.X+" state="+app.State);
