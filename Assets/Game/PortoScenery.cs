@@ -33,7 +33,7 @@ namespace Fosters.Bellavolta
         public void Draw(Course course,Motor motor,Progress prefs,float camX,float camY,float hw,float hh,float time)
         {
             if(prefs.Dusk!=builtDusk || PortoArt.P==null){PortoArt.P=prefs.Dusk?PortoPalette.Dusk():PortoPalette.Day();builtDusk=prefs.Dusk;Invalidate();}
-            if(course!=builtFor){builtFor=course;foreach(var s in sets)if(s.Spec.NeedsCourse){foreach(var t in s.Live.Values){t.Visible=false;s.Pool.Push(t);}s.Live.Clear();}}
+            if(course!=builtFor){builtFor=course;PortoArt.Variant=course.Surfaces.Count;Invalidate();}
             bool still=prefs.ReducedMotion;
             foreach(var s in sets)
             {

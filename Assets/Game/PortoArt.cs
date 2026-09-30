@@ -13,6 +13,8 @@ namespace Fosters.Bellavolta
     {
         public const float ArtRest=1.95f,CameraRest=1.52f,Back=.79f,Horizon=1.66f;
         public static PortoPalette P=PortoPalette.Day();
+        // Per-outing variation of the set dressing (the opening view stays fixed).
+        public static int Variant;
 
         public sealed class LayerSpec
         {
@@ -100,8 +102,8 @@ namespace Fosters.Bellavolta
 
         // ---------- far layers ----------
         static float Peaks(float x,int seed){float n=Fbm(x,seed,3);return 1-Mathf.Abs(n*2-1);}
-        static float RidgeFarY(float x)=>Horizon+.3f+3.1f*Mathf.Pow(.5f+.5f*Mathf.Cos((x+16)*Mathf.PI*2/64),1.3f)+.55f*Peaks(x*.08f,3)+.12f*Fbm(x*.6f,4,2);
-        static float RidgeMidY(float x)=>Horizon+.1f+2.4f*Mathf.Pow(.5f+.5f*Mathf.Cos((x+8)*Mathf.PI*2/52),1.5f)+.5f*Peaks(x*.11f,8)+.1f*Fbm(x*.8f,9,2);
+        static float RidgeFarY(float x)=>Horizon+.3f+3.1f*Mathf.Pow(.5f+.5f*Mathf.Cos((x+16)*Mathf.PI*2/64),1.3f)+.55f*Peaks(x*.08f,3)+.22f*Peaks(x*.3f,5)+.06f*Fbm(x*1.6f,4,2);
+        static float RidgeMidY(float x)=>Horizon+.1f+2.4f*Mathf.Pow(.5f+.5f*Mathf.Cos((x+8)*Mathf.PI*2/52),1.5f)+.5f*Peaks(x*.11f,8)+.2f*Peaks(x*.36f,10)+.06f*Fbm(x*1.8f,9,2);
         static void Ridges(Ink ink,int k)
         {
             float x0=k*60-.05f,x1=(k+1)*60+.05f;
@@ -121,27 +123,38 @@ namespace Fosters.Bellavolta
         {
             float x0=k*40-.05f,x1=(k+1)*40+.05f;
             ink.Ridge(x0,x1,.2f,HillY,Horizon-.5f,P.Hill,Color.Lerp(P.Hill,P.RidgeMid,.25f));
-            var r=new Rng(k*977+13);
-            // Hillside villages: grouped low-detail blocks and tiny cypresses on the slope face.
-            for(int v=0;v<9;v++)
+            var r=new Rng(k*977+13+(k<-1||k>0?Variant*100003:0));
+            // Wooded texture: soft darker tree clumps scattered over the slope (tiny at this depth).
+            var clump=Color.Lerp(P.Hill,P.HillShade,.45f);
+            for(int t=0;t<70;t++)
             {
-                float cx=Mathf.Lerp(x0+2,x1-2,r.Next());if(HillEnvelope(cx)<.25f)continue;
-                int n=r.Int(4,11);
+                float tx=r.Range(x0,x1),top=HillY(tx);if(top<Horizon+.35f)continue;
+                float ty=Mathf.Lerp(Horizon+.1f,top-.12f,r.Range(.35f,1f));
+                for(int j=0;j<4;j++){float s=r.Range(.07f,.13f);ink.Ellipse(new Vector2(tx+j*.1f,ty+r.Range(-.03f,.03f)),s,s*.75f,clump,10);}
+            }
+            // Hillside villages: grouped low-detail blocks and tiny cypresses on the slope face.
+            for(int v=0;v<14;v++)
+            {
+                float cx=Mathf.Lerp(x0+2,x1-2,r.Next());
+                if(k==-1 && v<3)cx=-8f+v*2.6f;else if(k==0 && v<2)cx=1.2f+v*2.4f;
+                if(HillEnvelope(cx)<.25f)continue;
+                int n=r.Int(5,13);
                 for(int h=0;h<n;h++)
                 {
-                    float hx=cx+r.Range(-1.1f,1.1f),top=HillY(hx);if(top<Horizon+.3f)continue;
-                    float hy=Mathf.Lerp(Horizon+.05f,top-.2f,r.Range(.25f,.85f));
-                    float w=r.Range(.14f,.26f),hh=r.Range(.1f,.18f);
+                    float hx=cx+r.Range(-1.2f,1.2f),top=HillY(hx);if(top<Horizon+.3f)continue;
+                    float hy=Mathf.Lerp(Horizon+.05f,top-.2f,r.Range(.2f,.85f));
+                    float w=r.Range(.14f,.28f),hh=r.Range(.1f,.18f);
                     ink.Rect(hx,hy,w,hh,Color.Lerp(P.VillageWall,P.Hill,r.Range(0,.25f)));
+                    ink.Rect(hx+w*.7f,hy,w*.3f,hh,Color.Lerp(P.VillageWall,P.Hill,.35f));
                     ink.Triangle(new Vector2(hx-.02f,hy+hh),new Vector2(hx+w+.02f,hy+hh),new Vector2(hx+w*.5f,hy+hh+.07f),P.VillageRoof);
                 }
-                for(int c=0;c<r.Int(1,5);c++){float tx=cx+r.Range(-1.4f,1.4f),ty=Mathf.Lerp(Horizon,HillY(tx)-.1f,r.Range(.2f,.8f));ink.Ellipse(new Vector2(tx,ty+.1f),.035f,.12f,P.HillShade,8);}
+                for(int c=0;c<r.Int(2,6);c++){float tx=cx+r.Range(-1.4f,1.4f),ty=Mathf.Lerp(Horizon,HillY(tx)-.1f,r.Range(.2f,.8f));ink.Ellipse(new Vector2(tx,ty+.1f),.035f,.13f,P.HillShade,8);}
             }
             ink.Ridge(x0,x1,.2f,FoothillY,Horizon-.5f,P.HillShade,Color.Lerp(P.HillShade,P.Hill,.3f));
             // A lighthouse islet where the hills open to the sea (always present in the opening view).
             if(k==0 || r.Chance(.55f))
             {
-                float lx=k==0?13.5f:Mathf.Lerp(x0+4,x1-4,r.Next());
+                float lx=k==0?9.6f:Mathf.Lerp(x0+4,x1-4,r.Next());
                 if(HillEnvelope(lx)<.08f)
                 {
                     var rock=Color.Lerp(P.RockShade,P.Hill,.35f);
@@ -193,16 +206,23 @@ namespace Fosters.Bellavolta
         }
         static void TownHouse(Ink ink,Rng r,float x,float y,float w,float h,bool detail)
         {
-            bool lit=r.Chance(.55f);
-            ink.Rect(x,y,w,h,lit?P.TownWall:P.TownShade);
-            if(lit)ink.Rect(x+w*.78f,y,w*.22f,h,P.TownShade);
-            float rh=r.Range(.12f,.2f);
-            ink.Quad(new Vector2(x-.04f,y+h),new Vector2(x+w+.04f,y+h),new Vector2(x+w-.05f,y+h+rh),new Vector2(x+.05f,y+h+rh),P.TownRoof);
-            ink.Quad(new Vector2(x+w*.55f,y+h),new Vector2(x+w+.04f,y+h),new Vector2(x+w-.05f,y+h+rh),new Vector2(x+w*.55f,y+h+rh),P.TownRoofShade);
+            int tone=r.Int(0,3);
+            Color wall=tone==0?P.TownWall:tone==1?Color.Lerp(P.TownWall,P.NearWallWarm,.45f):Color.Lerp(P.TownWall,P.Sun,.25f);
+            ink.Rect(x,y,w,h,wall);
+            ink.Rect(x+w*.74f,y,w*.26f,h,Color.Lerp(wall,P.TownShade,.8f));
+            // terracotta roof with a visible slope and shaded far side
+            float rh=r.Range(.16f,.26f);
+            ink.Quad(new Vector2(x-.06f,y+h),new Vector2(x+w+.06f,y+h),new Vector2(x+w*.62f,y+h+rh),new Vector2(x+w*.38f,y+h+rh),P.TownRoof);
+            ink.Quad(new Vector2(x+w*.5f,y+h),new Vector2(x+w+.06f,y+h),new Vector2(x+w*.62f,y+h+rh),new Vector2(x+w*.5f,y+h+rh),P.TownRoofShade);
+            ink.Rect(x-.04f,y+h-.035f,w+.08f,.035f,P.TownRoofShade);
             if(!detail)return;
-            int cols=Mathf.Max(1,Mathf.FloorToInt(w/.28f)),rows=Mathf.Max(1,Mathf.FloorToInt(h/.34f));
-            for(int i=0;i<cols;i++)for(int j=0;j<rows;j++)if(r.Chance(.7f))
-                ink.Rect(x+w*(i+.5f)/cols-.035f,y+h*(j+.45f)/rows,.07f,.11f,P.TownWindow);
+            int wins=w>.75f?2:1;
+            for(int i=0;i<wins;i++)
+            {
+                float wx=x+w*(i+.5f)/wins-.05f-w*.06f,wy=y+h*r.Range(.45f,.6f);
+                if(r.Chance(.35f)){ink.Rect(wx-.04f,wy,.18f,.16f,Color.Lerp(P.Shutter,P.TownWall,.25f));}
+                else ink.Rect(wx,wy,.08f,.14f,P.TownWindow);
+            }
         }
         static void HillTown(Ink ink,int k)
         {
@@ -211,7 +231,7 @@ namespace Fosters.Bellavolta
         }
         static void HillTownBuild(Ink ink,int k)
         {
-            var r=new Rng(k*7331+5);float x0=k*36;
+            var r=new Rng(k*7331+5+(k<-1||k>0?Variant*100003:0));float x0=k*36;
             if(k!=-1 && !r.Chance(.62f))
             {
                 // Open water: a few rocks and a sailing dinghy.
@@ -229,7 +249,7 @@ namespace Fosters.Bellavolta
             land.Add(new Vector2(b+.3f,2.0f));land.Add(new Vector2(b+1.4f,1.3f));land.Add(new Vector2(b+2.4f,.85f));
             ink.Polygon(land,Color.Lerp(P.RampartOpening,P.Hill,.3f));
             // cypresses behind the houses
-            for(int t=0;t<r.Int(3,6);t++){float tx=r.Range(a,b);Cypress(ink,tx,hill(tx)-.6f,r.Range(1.4f,2.2f),r.Range(.24f,.32f),P.Cypress,P.CypressShade);}
+            for(int t=0;t<r.Int(5,9);t++){float tx=r.Range(a,b);Cypress(ink,tx,hill(tx)-.6f,r.Range(1.4f,2.4f),r.Range(.24f,.34f),P.Cypress,P.CypressShade);}
             float towerX=a+len*peak+r.Range(-.8f,.4f);
             // cascade of houses from the crest down to the sea wall, back rows first
             for(int row=3;row>=0;row--)
@@ -243,7 +263,9 @@ namespace Fosters.Bellavolta
                     x+=w+(r.Chance(.3f)?r.Range(.15f,.6f):r.Range(-.12f,.05f));
                 }
                 if(row==2)BellTower(ink,towerX,hill(towerX+.3f)-.7f,.6f,2.1f);
-                if(row==1)for(int t=0;t<r.Int(1,3);t++){float tx=r.Range(a+.5f,b-.5f);Cypress(ink,tx,hill(tx)-1.2f,r.Range(1.2f,1.8f),r.Range(.22f,.3f),P.Cypress,P.CypressShade);}
+                if(row==1)for(int t=0;t<r.Int(2,5);t++){float tx=r.Range(a+.5f,b-.5f);Cypress(ink,tx,hill(tx)-1.2f,r.Range(1.2f,1.9f),r.Range(.22f,.3f),P.Cypress,P.CypressShade);}
+                // garden clumps between the rows
+                for(int t=0;t<r.Int(2,5);t++){float tx=r.Range(a,b);float ty=hill(tx)-row*.48f-.3f;if(ty>2.0f){ink.Ellipse(new Vector2(tx,ty),.22f,.16f,P.Shrub);ink.Ellipse(new Vector2(tx+.18f,ty-.03f),.17f,.13f,P.ShrubShade);}}
             }
             if(r.Chance(.6f)){float px=r.Range(a+1,b-1);Palm(ink,px,2.05f,r.Range(1.2f,1.6f),P.Palm);}
             // sea wall with an arcade of openings
@@ -272,8 +294,9 @@ namespace Fosters.Bellavolta
         static readonly Dictionary<int,List<Line>> laundryCache=new Dictionary<int,List<Line>>();
         public static List<Line> LaundryLines(int k)
         {
-            if(laundryCache.TryGetValue(k,out var list))return list;
-            list=new List<Line>();var dummy=new Ink();NearTownBuild(dummy,k,list);laundryCache[k]=list;
+            int key=k*64+Variant;
+            if(laundryCache.TryGetValue(key,out var list))return list;
+            list=new List<Line>();var dummy=new Ink();NearTownBuild(dummy,k,list);laundryCache[key]=list;
             if(laundryCache.Count>64)laundryCache.Clear();
             return list;
         }
@@ -305,7 +328,7 @@ namespace Fosters.Bellavolta
         }
         static void NearTownBuild(Ink ink,int k,List<Line> laundry)
         {
-            var r=new Rng(k*4099+71);float x0=k*28;
+            var r=new Rng(k*4099+71+(k<-1||k>0?Variant*100003:0));float x0=k*28;
             if(k!=-1 && !r.Chance(.5f))
             {
                 // open water: at most a moored skiff by the bridge
@@ -507,9 +530,9 @@ namespace Fosters.Bellavolta
         // ---------- foreground planting ----------
         static void Foreground(Ink ink,int k)
         {
-            var r=new Rng(k*5051+29);float x0=k*20;
-            if(k!=-1 && !r.Chance(.45f))return;
-            float cx=k==-1?-2.2f:x0+r.Range(3,17),baseY=-2.7f;
+            var r=new Rng(k*5051+29+(k<-1||k>0?Variant*100003:0));float x0=k*20;
+            if(k!=0 && !r.Chance(.45f))return;
+            float cx=k==0?2.5f:x0+r.Range(3,17),baseY=-2.7f;
             int leaves=r.Int(24,38);
             for(int i=0;i<leaves;i++)
             {
@@ -519,7 +542,7 @@ namespace Fosters.Bellavolta
                 if(tip.y>-.7f)len*=(-.7f-root.y)/Mathf.Max(.1f,tip.y-root.y);
                 ink.Leaf(root,ang,len,len*r.Range(.32f,.42f),i%4==0?P.LeafLight:P.Leaf);
             }
-            if(r.Chance(.55f))
+            if(k==0 || r.Chance(.55f))
             {
                 int flowers=r.Int(3,7);
                 for(int f=0;f<flowers;f++)
