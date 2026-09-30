@@ -18,6 +18,12 @@ namespace Fosters.Studio
         public abstract Motor CreateMotor(Course course, System.Action<string,int> award, System.Action<string> stumble);
         public abstract void DrawRider(Ink ink, Motor motor, Vector2 position, float time);
         public virtual bool IsMotorbike => false;
+        // Line multiplier ceiling from each premise (Hopward x3, Bellavolta x4).
+        public virtual int MultiplierCap => 3;
+        // Short acknowledgement when the motor accepts a prepared input; null shows nothing.
+        public virtual string PreparedHint => null;
+        // Teaching lines per outing; defaults to the shared lesson list.
+        public virtual string[] LessonsFor(int outing) => Lessons;
     }
 
     public struct RiderPose

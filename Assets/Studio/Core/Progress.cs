@@ -19,11 +19,13 @@ namespace Fosters.Studio
     public sealed class LineScore
     {
         public int Banked, Pending, Multiplier=1;
+        readonly int cap;
+        public LineScore(int multiplierCap=3){cap=Mathf.Max(1,multiplierCap);}
         float quiet; readonly System.Collections.Generic.Dictionary<string,int> moves=new System.Collections.Generic.Dictionary<string,int>();
         public void Add(string name,int points)
         {
             moves.TryGetValue(name,out int count);moves[name]=count+1;
-            Pending+=Mathf.RoundToInt(points/(1+count*.55f));Multiplier=Mathf.Min(3,moves.Count);quiet=0;
+            Pending+=Mathf.RoundToInt(points/(1+count*.55f));Multiplier=Mathf.Min(cap,moves.Count);quiet=0;
         }
         public void Tick(float dt){if(Pending>0 && (quiet+=dt)>2.5f)Bank();}
         public void Bank(){Banked+=Pending*Multiplier;Clear();}

@@ -28,7 +28,7 @@ namespace Fosters.Studio
             LoadOuting(0);Change(ScreenState.Home);
         }
         void LoadOuting(int index)
-        {Outing=index;Course=Module.CreateCourse(index);Course.Validate();Motor=Module.CreateMotor(Course,Award,Stumble);Motor.Reset(1);Motor.Interpolate(1);Score=new LineScore();RunTime=0;CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*.36f;CameraY=3.2f;camVelocity=0;accumulator=0;}
+        {Outing=index;Course=Module.CreateCourse(index);Course.Validate();Motor=Module.CreateMotor(Course,Award,Stumble);Motor.Reset(1);Motor.Interpolate(1);Score=new LineScore(Module.MultiplierCap);RunTime=0;CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*.36f;CameraY=3.2f;camVelocity=0;accumulator=0;}
         public void StartRun(int outing,bool flow)
         {Flow=flow;LoadOuting(outing);Feedback="";FeedbackTime=0;Change(ScreenState.Playing);}
         public void Change(ScreenState next)
@@ -47,7 +47,7 @@ namespace Fosters.Studio
             CameraX=Motor.Pose.X+view.orthographicSize*view.aspect*.36f;CameraY=3.2f;Change(ScreenState.Playing);
         }
         void Award(string name,int points)
-        {Score.Add(name,points);Feedback=Flow?name.ToUpperInvariant()+"  +"+points:name;FeedbackTime=1.8f;sound.Cue(true);}
+        {Score.Add(name,points);Feedback=Flow?name.ToUpperInvariant()+"  +"+points:name;FeedbackTime=1.8f;sound.Reward();}
         void Stumble(string cause)
         {Score.Clear();Feedback=cause;FeedbackTime=4;Progress.Save();Change(ScreenState.Recovery);}
         public void Hint(string text){Feedback=text;FeedbackTime=1.2f;}
@@ -63,7 +63,7 @@ namespace Fosters.Studio
                 {
                     bool preparedBefore=Motor.Pose.Prepared;
                     Motor.Previous=Motor.Pose;Motor.Step(Step,InputReader.Consume());accumulator-=Step;
-                    if(!preparedBefore && Motor.Pose.Prepared){Hint("High rebound");sound.Cue(false);}
+                    if(!preparedBefore && Motor.Pose.Prepared){if(Module.PreparedHint!=null)Hint(Module.PreparedHint);sound.Accept();}
                     Score.Tick(Step);
                     if(Motor.UpperDiscovered && (Progress.Branches&(1<<Outing))==0){Progress.Branches|=1<<Outing;Progress.Save();Hint("A different way through");}
                     if(Motor.Pose.X>=Course.Length)
