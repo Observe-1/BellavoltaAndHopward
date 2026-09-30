@@ -9,13 +9,14 @@ namespace Fosters.Bellavolta
         public override string Title=>"Bellavolta";
         public override string Slug=>"bellavolta";
         public override string Place=>"Porto Chiaro · Italian coast";
-        public override string Tagline=>"Take the long way around.";
-        public override string[] Outings=>new[]{"The harbour road","The planted promenade","Evening on the sea wall"};
-        public override string[] Lessons=>new[]{"Hold to lift the front wheel. Release to settle.","Keep a little balance. Long holds can tip the line.","Flick up at a pale road lip for the higher path.","Start a fresh upward flick in the air for a tabletop."};
-        public override string PrimaryControl=>"Wheelie · hold";
-        public override string SecondaryControl=>"Pop / tabletop";
+        public override string Tagline=>"One road along the coast. How far can you ride it?";
+        public override string[] Outings=>new[]{"The coast road"};
+        public override string[] Lessons=>new[]{"Tap to hop.","Keep holding in the air to backflip. Let go to stop.","Land level with the road. Nose-high lands a wheelie.","Tap in the air for a trick. Finish it before you land.","Kick off the ramps and land on the bunting to grind."};
+        public override string PrimaryControl=>"Hop · hold to flip";
+        public override string SecondaryControl=>"Trick";
+        public override bool Endless=>true;
         public override bool IsMotorbike=>true;
-        public override int MultiplierCap=>4;
+        public override int MultiplierCap=>5;
         // Roles used by the shared shell (menus, HUD): 0 sky, 1 paper, 2 far, 3 town, 4 sea, 5 wall, 6 ink, 7 accent.
         public override Color[] Palette(bool dusk)
         {
@@ -26,24 +27,11 @@ namespace Fosters.Bellavolta
         public override float CameraSize=>3.8f;
         public override float CameraLift=>PortoArt.CameraRest;
         public override IScenery CreateScenery(Transform root)=>new PortoScenery(root,this);
-        public override Course CreateCourse(int outing)
-        {
-            var c=new Course{Length=450};
-            for(int i=0;i<6;i++)
-            {
-                float x=i*75;
-                c.Surfaces.Add(new Surface(x,x+24,0,0));
-                c.Surfaces.Add(new Surface(x+24,x+36,0,-.35f));
-                c.Surfaces.Add(new Surface(x+36,x+42,-.35f,0));
-                c.Surfaces.Add(new Surface(x+42,x+48,0,1,false,true));
-                c.Surfaces.Add(new Surface(x+48,x+57,1,0));
-                c.Surfaces.Add(new Surface(x+57,x+75,0,0));
-                if(i==1 || (outing>0 && i==3) || (outing>1 && i==4))
-                {c.Surfaces.Add(new Surface(x+51,x+62,1.85f,1.85f,true));c.Surfaces.Add(new Surface(x+62,x+72,1.85f,0,true));}
-                if(i==2 || i==4)c.Arches.Add(x+20);
-            }
-            return c;
-        }
+        // A fresh coastline every run.
+        public override Course CreateCourse(int outing)=>new PortoRoad(System.Environment.TickCount&0x7fffffff);
+        // Widen the view and give more look-ahead as the ride speeds up.
+        public override float CameraSizeFor(Motor m)=>Mathf.Lerp(3.8f,4.7f,Mathf.InverseLerp(PortoRoad.StartSpeed,PortoRoad.TopSpeed+2,m.Speed));
+        public override float RiderAnchorFor(Motor m)=>Mathf.Lerp(.32f,.25f,Mathf.InverseLerp(PortoRoad.StartSpeed,PortoRoad.TopSpeed+2,m.Speed));
         public override Motor CreateMotor(Course c,System.Action<string,int> a,System.Action<string> s)=>new MopedMotor(c,a,s);
         public override void DrawRider(Ink ink,Motor motor,Vector2 position,float time)=>MopedRig.Draw(ink,motor.RenderPose,position,time);
     }

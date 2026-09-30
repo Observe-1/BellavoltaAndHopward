@@ -8,10 +8,22 @@ namespace Fosters.Studio
     {
         public float Start, End, A, B;
         public bool Upper, Lip, Precision;
-        public Surface(float start,float end,float a,float b,bool upper=false,bool lip=false,bool precision=false)
-        { Start=start;End=end;A=a;B=b;Upper=upper;Lip=lip;Precision=precision; }
-        public float Height(float x) { float t=Mathf.Clamp01((x-Start)/(End-Start)); return Mathf.Lerp(A,B,t*t*(3-2*t)); }
-        public float Slope(float x) { float t=Mathf.Clamp01((x-Start)/(End-Start)); return (B-A)*6*t*(1-t)/(End-Start); }
+        // Profile: 0 smooth (ease in and out), 1 kicker (steepens to a launch lip), 2 straight.
+        public int Shape;
+        public Surface(float start,float end,float a,float b,bool upper=false,bool lip=false,bool precision=false,int shape=0)
+        { Start=start;End=end;A=a;B=b;Upper=upper;Lip=lip;Precision=precision;Shape=shape; }
+        public float Height(float x)
+        {
+            float t=Mathf.Clamp01((x-Start)/(End-Start));
+            float u=Shape==1?t*t:Shape==2?t:t*t*(3-2*t);
+            return Mathf.Lerp(A,B,u);
+        }
+        public float Slope(float x)
+        {
+            float t=Mathf.Clamp01((x-Start)/(End-Start));
+            float d=Shape==1?2*t:Shape==2?1:6*t*(1-t);
+            return (B-A)*d/(End-Start);
+        }
     }
     public class Course
     {

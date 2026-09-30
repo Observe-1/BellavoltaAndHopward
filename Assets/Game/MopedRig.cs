@@ -16,22 +16,71 @@ namespace Fosters.Bellavolta
             Vector2 axle=pos+new Vector2(0,Wheel);
             float tilt=p.Pitch,depth=p.Trick*55f*Mathf.Deg2Rad;
             float bikeFold=Mathf.Cos(depth),riderFold=Mathf.Cos(depth*.45f);
-            Vector2 B(float x,float y)=>axle+Ink.Rotate(new Vector2(x,y*bikeFold),tilt);
-            float crouch=p.Compression*.8f+p.Trick*.05f,lean=p.Lean;
+            // In a crash the machine tumbles about its middle so it never sinks through the road.
+            Vector2 mid=pos+new Vector2(.47f,.5f);bool tumbling=p.Mode==2;
+            Vector2 B(float x,float y)=>tumbling?mid+Ink.Rotate(new Vector2(x-.47f,y*bikeFold-.25f),tilt):axle+Ink.Rotate(new Vector2(x,y*bikeFold),tilt);
+            bool crashed=p.Mode==2,noHands=p.TrickKind==2 && p.Trick>0;
+            float crouch=p.Compression*.8f+(p.TrickKind==1?p.Trick*.05f:0)+(p.Mode==1?.1f:0),lean=p.Lean;
+            if(p.TrickKind==2)depth=0;bikeFold=Mathf.Cos(depth);riderFold=Mathf.Cos(depth*.45f);
             Vector2 R(float x,float y)=>axle+Ink.Rotate(new Vector2(x-lean*(y-.5f)*.28f,(y-crouch)*riderFold),tilt);
             Vector2 D(Vector2 v)=>Ink.Rotate(v,tilt);
             Color frame=Color.Lerp(P.Moped,P.MopedShade,p.Trick*.4f),frameLight=Color.Lerp(frame,P.MopedLight,.5f);
             Color dark=P.Tyre,mech=Color.Lerp(P.Tyre,P.MopedShade,.45f);
 
+            if(crashed){DrawBike(ink,p,B,D,frame,frameLight,dark,mech,bikeFold);Tumble(ink,p,pos,time);return;}
             // --- far side: arm and leg in shade ---
             Vector2 hip=R(.12f,.66f),knee=R(.46f,.74f),foot=B(.44f,.18f);
             Vector2 farKnee=R(.42f,.72f),farFoot=B(.38f,.2f);
             Vector2 shoulder=R(.3f,1.06f),grip=B(.77f,.93f),farGrip=B(.72f,.95f);
+            if(noHands){float t=p.Trick;grip=Vector2.Lerp(grip,R(.5f,1.62f),t);farGrip=Vector2.Lerp(farGrip,R(.2f,1.66f),t);}
             ink.Capsule(hip,farKnee,.13f,P.TrousersShade);ink.Capsule(farKnee,farFoot,.11f,P.TrousersShade);
             ink.Capsule(farFoot+D(new Vector2(-.02f,-.01f)),farFoot+D(new Vector2(.1f,-.01f)),.07f,Color.Lerp(P.Shoe,P.Trousers,.4f));
             ink.Capsule(shoulder+D(new Vector2(-.02f,-.03f)),Vector2.Lerp(shoulder,farGrip,.5f)+D(new Vector2(0,-.05f)),.1f,P.JacketShade);
             ink.Capsule(Vector2.Lerp(shoulder,farGrip,.5f)+D(new Vector2(0,-.05f)),farGrip,.08f,P.JacketShade);
 
+            DrawBike(ink,p,B,D,frame,frameLight,dark,mech,bikeFold);
+
+            // --- near leg: thigh to a raised knee, shin down to the foot plate ---
+            ink.Capsule(hip,knee,.15f,P.Trousers);
+            ink.Capsule(knee,foot+D(new Vector2(0,.06f)),.12f,P.Trousers);
+            ink.Capsule(foot+D(new Vector2(-.03f,-.005f)),foot+D(new Vector2(.12f,-.005f)),.08f,P.Shoe);
+            // --- jacket: rounded back, open front, sleeve ---
+            Vector2 waistBack=R(.0f,.64f),waistFront=R(.26f,.64f),chest=R(.42f,.98f),neckFront=R(.36f,1.12f),nape=R(.22f,1.14f),back=R(.02f,.92f);
+            pts.Clear();pts.Add(waistBack);pts.Add(waistFront);pts.Add(Vector2.Lerp(waistFront,chest,.5f)+D(new Vector2(.04f,0)));pts.Add(chest);pts.Add(neckFront);pts.Add(nape);pts.Add(back+D(new Vector2(-.02f,.08f)));pts.Add(back);pts.Add(Vector2.Lerp(waistBack,back,.4f)+D(new Vector2(-.03f,0)));
+            ink.Polygon(pts,P.Jacket);
+            pts.Clear();pts.Add(waistBack);pts.Add(Vector2.Lerp(waistBack,waistFront,.3f));pts.Add(R(.1f,.9f));pts.Add(nape);pts.Add(back+D(new Vector2(-.02f,.08f)));pts.Add(back);pts.Add(Vector2.Lerp(waistBack,back,.4f)+D(new Vector2(-.03f,0)));
+            ink.Polygon(pts,P.JacketShade);
+            ink.Capsule(Vector2.Lerp(waistBack,waistFront,.05f),Vector2.Lerp(waistBack,waistFront,.95f),.07f,P.JacketShade);
+            ink.Line(chest+D(new Vector2(-.02f,-.02f)),Vector2.Lerp(waistFront,chest,.2f),.025f,P.JacketShade);
+            // collar and neck
+            ink.Capsule(neckFront+D(new Vector2(-.02f,.02f)),D(new Vector2(-.03f,.02f))+nape,.06f,P.JacketShade);
+            Vector2 head=R(.37f,1.3f);
+            ink.Capsule(R(.31f,1.12f),head+D(new Vector2(-.02f,-.08f)),.08f,P.Skin);
+            // --- long hair streaming back ---
+            float breeze=Mathf.Sin(time*5.1f+p.X*.6f),lift=-p.VelocityY*4;
+            Vector2 hairRoot=head+D(new Vector2(-.09f,-.02f));
+            for(int s=0;s<3;s++)
+            {
+                float a=192+s*9+tilt+breeze*(4+s*2)+lift;float len=.34f+s*.05f;
+                ink.Leaf(hairRoot+D(new Vector2(0,-.02f*s)),a,len,.1f-.015f*s,P.Hair);
+            }
+            ink.Ellipse(head,.108f,.12f,P.Skin);
+            ink.Ellipse(head+D(new Vector2(-.055f,-.03f)),.07f,.09f,P.Hair);
+            // --- helmet: dome with back guard, visor edge ---
+            Vector2 hc=head+D(new Vector2(-.01f,.03f));
+            ink.Sector(hc,.138f,.132f,-8+tilt,188+tilt,P.Helmet);
+            pts.Clear();pts.Add(hc+D(new Vector2(-.136f,.02f)));pts.Add(hc+D(new Vector2(-.13f,-.08f)));pts.Add(hc+D(new Vector2(-.05f,-.065f)));pts.Add(hc+D(new Vector2(.02f,0)));ink.Polygon(pts,P.Helmet);
+            ink.Line(hc+D(new Vector2(-.13f,-.005f)),hc+D(new Vector2(.12f,-.005f)),.016f,Color.Lerp(P.Helmet,P.Tyre,.22f));
+            ink.Capsule(hc+D(new Vector2(.08f,-.008f)),hc+D(new Vector2(.17f,-.025f)),.028f,Color.Lerp(P.Helmet,P.Tyre,.12f));
+            // --- near arm reaching to the grip ---
+            Vector2 elbow=Vector2.Lerp(shoulder,grip,.5f)+D(new Vector2(0,-.06f));
+            ink.Capsule(shoulder,elbow,.12f,P.Jacket);ink.Capsule(elbow,grip+D(new Vector2(-.05f,0)),.095f,P.Jacket);
+            ink.Capsule(elbow+D(new Vector2(.02f,-.035f)),grip+D(new Vector2(-.06f,-.03f)),.03f,P.JacketShade);
+            ink.Ellipse(grip,.048f,.048f,P.Skin);
+        }
+        static void DrawBike(Ink ink,RiderPose p,System.Func<float,float,Vector2> B,System.Func<Vector2,Vector2> D,Color frame,Color frameLight,Color dark,Color mech,float bikeFold)
+        {
+            var P=PortoArt.P;
             // --- wheels: thick tyre, dark hub, thin rim line ---
             float spin=-p.X/Wheel;
             for(int w=0;w<2;w++)
@@ -76,43 +125,23 @@ namespace Fosters.Bellavolta
             ink.Ellipse(B(.915f,.8f),.062f,.062f*bikeFold+.001f,P.Helmet);
             ink.Capsule(B(.72f,.93f),B(.82f,.92f),.04f,dark);ink.Line(B(.8f,.9f),B(.86f,.99f),.03f,dark);
 
-            // --- near leg: thigh to a raised knee, shin down to the foot plate ---
-            ink.Capsule(hip,knee,.15f,P.Trousers);
-            ink.Capsule(knee,foot+D(new Vector2(0,.06f)),.12f,P.Trousers);
-            ink.Capsule(foot+D(new Vector2(-.03f,-.005f)),foot+D(new Vector2(.12f,-.005f)),.08f,P.Shoe);
-            // --- jacket: rounded back, open front, sleeve ---
-            Vector2 waistBack=R(.0f,.64f),waistFront=R(.26f,.64f),chest=R(.42f,.98f),neckFront=R(.36f,1.12f),nape=R(.22f,1.14f),back=R(.02f,.92f);
-            pts.Clear();pts.Add(waistBack);pts.Add(waistFront);pts.Add(Vector2.Lerp(waistFront,chest,.5f)+D(new Vector2(.04f,0)));pts.Add(chest);pts.Add(neckFront);pts.Add(nape);pts.Add(back+D(new Vector2(-.02f,.08f)));pts.Add(back);pts.Add(Vector2.Lerp(waistBack,back,.4f)+D(new Vector2(-.03f,0)));
-            ink.Polygon(pts,P.Jacket);
-            pts.Clear();pts.Add(waistBack);pts.Add(Vector2.Lerp(waistBack,waistFront,.3f));pts.Add(R(.1f,.9f));pts.Add(nape);pts.Add(back+D(new Vector2(-.02f,.08f)));pts.Add(back);pts.Add(Vector2.Lerp(waistBack,back,.4f)+D(new Vector2(-.03f,0)));
-            ink.Polygon(pts,P.JacketShade);
-            ink.Capsule(Vector2.Lerp(waistBack,waistFront,.05f),Vector2.Lerp(waistBack,waistFront,.95f),.07f,P.JacketShade);
-            ink.Line(chest+D(new Vector2(-.02f,-.02f)),Vector2.Lerp(waistFront,chest,.2f),.025f,P.JacketShade);
-            // collar and neck
-            ink.Capsule(neckFront+D(new Vector2(-.02f,.02f)),D(new Vector2(-.03f,.02f))+nape,.06f,P.JacketShade);
-            Vector2 head=R(.37f,1.3f);
-            ink.Capsule(R(.31f,1.12f),head+D(new Vector2(-.02f,-.08f)),.08f,P.Skin);
-            // --- long hair streaming back ---
-            float breeze=Mathf.Sin(time*5.1f+p.X*.6f),lift=-p.VelocityY*4;
-            Vector2 hairRoot=head+D(new Vector2(-.09f,-.02f));
-            for(int s=0;s<3;s++)
-            {
-                float a=192+s*9+tilt+breeze*(4+s*2)+lift;float len=.34f+s*.05f;
-                ink.Leaf(hairRoot+D(new Vector2(0,-.02f*s)),a,len,.1f-.015f*s,P.Hair);
-            }
-            ink.Ellipse(head,.108f,.12f,P.Skin);
-            ink.Ellipse(head+D(new Vector2(-.055f,-.03f)),.07f,.09f,P.Hair);
-            // --- helmet: dome with back guard, visor edge ---
-            Vector2 hc=head+D(new Vector2(-.01f,.03f));
-            ink.Sector(hc,.138f,.132f,-8+tilt,188+tilt,P.Helmet);
-            pts.Clear();pts.Add(hc+D(new Vector2(-.136f,.02f)));pts.Add(hc+D(new Vector2(-.13f,-.08f)));pts.Add(hc+D(new Vector2(-.05f,-.065f)));pts.Add(hc+D(new Vector2(.02f,0)));ink.Polygon(pts,P.Helmet);
-            ink.Line(hc+D(new Vector2(-.13f,-.005f)),hc+D(new Vector2(.12f,-.005f)),.016f,Color.Lerp(P.Helmet,P.Tyre,.22f));
-            ink.Capsule(hc+D(new Vector2(.08f,-.008f)),hc+D(new Vector2(.17f,-.025f)),.028f,Color.Lerp(P.Helmet,P.Tyre,.12f));
-            // --- near arm reaching to the grip ---
-            Vector2 elbow=Vector2.Lerp(shoulder,grip,.5f)+D(new Vector2(0,-.06f));
-            ink.Capsule(shoulder,elbow,.12f,P.Jacket);ink.Capsule(elbow,grip+D(new Vector2(-.05f,0)),.095f,P.Jacket);
-            ink.Capsule(elbow+D(new Vector2(.02f,-.035f)),grip+D(new Vector2(-.06f,-.03f)),.03f,P.JacketShade);
-            ink.Ellipse(grip,.048f,.048f,P.Skin);
+        }
+        // Thrown clear in a crash: a tucked, tumbling figure on a short arc that settles on the road.
+        static void Tumble(Ink ink,RiderPose p,Vector2 pos,float time)
+        {
+            var P=PortoArt.P;float t=Mathf.Min(p.ModeTime,1.2f);
+            float arc=Mathf.Max(0,1.1f+3.2f*t-7f*t*t);
+            Vector2 c=pos+new Vector2(.9f+t*2.4f,arc+.35f);
+            float a=-t*620f*(1-t*.55f);
+            Vector2 U(float x,float y)=>c+Ink.Rotate(new Vector2(x,y),a);
+            ink.Capsule(U(-.18f,-.05f),U(.12f,-.2f),.14f,P.Trousers);
+            ink.Capsule(U(.12f,-.2f),U(.25f,.02f),.12f,P.Trousers);
+            ink.Capsule(U(-.2f,0),U(.1f,.22f),.3f,P.Jacket);
+            ink.Capsule(U(.08f,.2f),U(.3f,.05f),.1f,P.Jacket);
+            ink.Ellipse(U(.18f,.36f),.11f,.12f,P.Skin);
+            ink.Sector(U(.17f,.38f),.135f,.13f,a-8,a+188,P.Helmet);
+            ink.Leaf(U(.08f,.36f),a+200,.28f,.09f,P.Hair);
+            ink.Capsule(U(.28f,.02f)+Ink.Rotate(new Vector2(.05f,0),a),U(.34f,-.02f),.08f,P.Shoe);
         }
     }
 }

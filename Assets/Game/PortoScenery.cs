@@ -33,7 +33,8 @@ namespace Fosters.Bellavolta
         public void Draw(Course course,Motor motor,Progress prefs,float camX,float camY,float hw,float hh,float time)
         {
             if(prefs.Dusk!=builtDusk || PortoArt.P==null){PortoArt.P=prefs.Dusk?PortoPalette.Dusk():PortoPalette.Day();builtDusk=prefs.Dusk;Invalidate();}
-            if(course!=builtFor){builtFor=course;PortoArt.Variant=course.Surfaces.Count;Invalidate();}
+            if(course!=builtFor){builtFor=course;PortoArt.Variant=course is PortoRoad pr?pr.Seed%977:course.Surfaces.Count;Invalidate();}
+            course.EnsureAhead(camX+hw*2+40);
             bool still=prefs.ReducedMotion;
             foreach(var s in sets)
             {
@@ -66,7 +67,9 @@ namespace Fosters.Bellavolta
             }
             laundry.Flush();
             rider.Ink.Begin();
+            if(course is PortoRoad road)PortoArt.Lemons(rider.Ink,road,camX,camY,hw,time);
             var r=motor.RenderPose;Vector2 pos=new Vector2(r.X-camX,r.Y-camY);
+            PortoArt.Effects(rider.Ink,motor,pos,time,still);
             float ground=course.Ground(r.X);
             if(ground>-50){var shadow=PortoArt.P.DeckShade;shadow.a=.55f;float lift=Mathf.Clamp01((r.Y-ground)/2.5f);rider.Ink.Ellipse(new Vector2(pos.x+.47f,ground-camY+.02f),.62f*(1-lift*.5f),.045f,shadow);}
             module.DrawRider(rider.Ink,motor,pos,time);

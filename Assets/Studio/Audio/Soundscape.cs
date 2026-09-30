@@ -18,8 +18,9 @@ namespace Fosters.Studio
         {
             bool playing=app.State==ScreenState.Playing;
             music.volume=app.Progress.Music*.27f;effects.volume=app.Progress.Effects*.4f;
-            float speed=app.Motor!=null?Mathf.Clamp01(app.Motor.Pose.Pitch/40f):0;
-            engine.volume=playing?app.Progress.Effects*.10f:0;engine.pitch=1+speed*.12f;
+            // engine note rises gently with road speed and a little when airborne
+            float speed=app.Motor!=null?Mathf.InverseLerp(4,16,app.Motor.Speed):0,air=app.Motor!=null&&!app.Motor.Pose.Grounded?.06f:0;
+            engine.volume=playing?app.Progress.Effects*.10f:0;engine.pitch=Mathf.Lerp(engine.pitch,.85f+speed*.45f+air,.1f);
             if(app.Motor==null)return;
             float pulse=app.Motor.ContactPulse;
             if(playing && pulse>lastPulse+.3f){effects.PlayOneShot(ticks[tickIndex],.3f);tickIndex=(tickIndex+1)%ticks.Length;}

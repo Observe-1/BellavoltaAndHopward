@@ -1,10 +1,41 @@
-# Bellavolta — implemented slice
+# Bellavolta — endless coastal ride
 
-An original human-and-moped journey through Porto Chiaro. Three replayable 90-second variants use six road sections with crests, dips, two low arches and one to three elevated promenade options. Journey records arrival and upper-route discovery locally; Flow Run exposes line score and retries on a stumble.
+One endless road along the Porto Chiaro coast, generated fresh every run. The moped cruises on its own and speeds up slowly but surely with distance (6.5 u/s at the start, about 10.8 by 3 km, 13+ later). The run ends on the first crash. Score, distance and lemons are recorded; best distance and best score are kept.
 
-Hold after 0.12 seconds to wheelie; release to settle. The longer the hold, the farther back the balance moves. Flick up within the last 0.9 metres of a highlighted road lip for an assisted pop. A natural lip still launches without input. A fresh aerial upward flick commits a 0.65-second tabletop. A touch begun on the ground cannot become an aerial trick. Separate hold and pop/tabletop buttons are available in settings. Keyboard: Space hold, Up pop/tabletop, Escape pause.
+## Controls (one finger)
 
-Wheelies bank their award only after settling. Tabletop awards require a completed landing. Optional-path pops score only on the raised surface. A repeated move gives diminishing points. Line multiplier ×1 plus one per distinct move, capped at ×4. Over-balancing a wheelie, lifting under a low arch or a slightly unfinished tabletop is a wobble: the front wheel drops, the unbanked line clears and the ride continues; the hold must be released before another wheelie. Missing the road or a badly late tabletop is a real miss. Journey hides score; recovery returns to a verified ground checkpoint. Flow retries the outing.
+| Input | Result |
+| --- | --- |
+| Press on the road or a rope | Hop, instantly (plus any lift from a ramp lip) |
+| Keep holding in the air | Backflip rotation (after 0.13 s, up to 500°/s); let go to stop |
+| Quick tap in the air | Trick: tabletop, then no-hander on the next; must finish (0.5 s) before landing |
+| Land within about -32° to +55° of the road | Ride away. Within 8° after a trick: Perfect landing. Nose-high: wheelie |
+| Land further off, mid-trick, into a crate or the harbour | Crash: the run ends |
+
+Accessible mode (Settings → Separate controls) splits this into a Hop/flip button (hold) and a Trick button.
+
+## The road
+
+Built from "moments" separated by short breathers, picked at random and scaled by distance:
+
+- **Kicker and gap**: a steepening stone ramp, open water, a downhill landing. Early gaps clear without a hop; later ones need a hop off the lip.
+- **Launch ramp**: a big kicker onto a long downhill: pure air time for flips.
+- **Gap**: a broken span to hop.
+- **Lemon crates**: hop over; tall stacks appear more often further on. Spacing always leaves room to land between them.
+- **Drop**: a ledge down to a lower road; drops get taller with distance.
+- **Bunting**: a small kicker, then a festival line strung over the road. Land on the rope to grind.
+- **Promenade**: kick up onto a raised arcaded walkway (hop needed), ride it, then drop off the far end for big air. The lower road carries on beneath, sometimes with a crate.
+- **Rollers**: smooth humps that pop you at speed.
+
+Lemons sit along the natural lines (jump arcs, rope, promenade) to show where to go.
+
+## Scoring
+
+Backflip 150, double 400, triple 800; tabletop or no-hander 100; grind 40 plus 80 per second; perfect landing 50; wheelie 60; big air 40. Different moves chained within 2.5 s multiply the line (×1 plus one per distinct move, up to ×5); the line banks when you ride quietly. Each clean trick adds a short speed boost that grows with the chain. A crash loses the unbanked line.
+
+## Movement values
+
+Gravity 20, hop 7.6 u/s (0.76 s of air on the flat, not enough for a flip; ramps and drops give 0.95–1.4 s). Camera widens from 3.8 to 4.7 half-height and the rider moves from 32% to 25% across as speed rises. Motor runs at 120 Hz with interpolated rendering.
 
 ## Visual and animation direction
 
@@ -36,8 +67,8 @@ All art is original code-drawn vector geometry (`PortoArt.cs`, `PortoPalette.cs`
 
 ## Scope boundary
 
-This is one implemented region, not the proposed multi-town full game. No vehicle upgrades, traffic simulation, online leaderboards or purchases. The journal tracks outing arrivals and upper paths. Mobile release work and device acceptance gates are in RELEASE.md; do not infer those from desktop verification.
+One endless region (Porto Chiaro). No purchases, accounts, leaderboards or online services. Not yet tuned on a device: hop timing, flip rate, landing windows and the speed curve are starting values for the first playtest.
 
 ## Verification
 
-`Tests~/ModelChecks.cs` (16 deterministic checks): neutral completion of all outings, wheelie credit only after settling, over-balance wobble and fresh-touch rule, assisted pop to the promenade, tabletop scoring only on landing, grounded-touch ownership, ×4 cap and diminishing repeats, deterministic scenery tiles and foreground kept below the riding line. Unity editor smoke: `-executeMethod Fosters.Studio.Editor.StudioBuild.Smoke`.
+`Tests~/ModelChecks.cs` (19 deterministic checks): seeded generation is repeatable; speed ramps; hazards keep appearing past 6 km; a road-reading bot survives 4 km on 8 random coastlines; doing nothing crashes early; flip-sized air occurs often; a tap on the ground only hops; a timed hold lands a clean backflip; over- and under-rotation crash; air taps land tricks and late tricks crash; crates crash unless hopped; bunting grinds; combo multiplier.

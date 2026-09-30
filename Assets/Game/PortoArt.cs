@@ -418,32 +418,135 @@ namespace Fosters.Bellavolta
         }
 
         // ---------- road: stone bridge, parapet, promenade, gates, lamps ----------
-        public static float Lower(Course c,float x){float g=c.Ground(Mathf.Clamp(x,0,c.Length-.01f));return g<-50?0:g;}
+        public static float Lower(Course c,float x){float g=c.Ground(c.Endless?x:Mathf.Clamp(x,0,c.Length-.01f));return g<-50?0:g;}
+        static bool LowerAt(Course c,float x,out float y){y=c.Ground(c.Endless?x:Mathf.Clamp(x,0,c.Length-.01f));return y>-50;}
         static void Road(Ink ink,int k,Course course)
         {
-            float x0=k*16,x1=x0+16;
+            float x0=k*16,x1=x0+16;var road=course as PortoRoad;
             // Raised promenades on arcades sit behind the riding plane.
             foreach(var s in course.Surfaces)if(s.Upper && s.End>x0-.5f && s.Start<x1+.5f)Promenade(ink,course,s,x0,x1);
             foreach(float g in course.Arches)if(g>x0-3 && g<x1+1)Gate(ink,course,g);
-            // lamps and parapet blocks along the back edge
-            for(float lx=Mathf.Ceil((x0-9)/18)*18+9;lx<x1;lx+=18)if(lx>=x0 && !NearGate(course,lx,2.5f))Lamp(ink,lx,Lower(course,lx));
-            for(float bx=Mathf.Ceil(x0/8.5f)*8.5f;bx<x1;bx+=8.5f)if(!NearGate(course,bx,2.2f)){float y=Lower(course,bx);ink.RoundRect(bx-.27f,y-.05f,.54f,.4f,.07f,P.Bollard);ink.Rect(bx-.27f,y+.3f,.54f,.04f,Color.Lerp(P.Bollard,P.DeckEdge,.5f));}
-            if(course.Length>=x0 && course.Length<x1+2)Finish(ink,course);
-            // deck, arches and water openings
+            // lamps and parapet blocks along the back edge, only where there is road
+            for(float lx=Mathf.Ceil((x0-9)/18)*18+9;lx<x1;lx+=18)if(lx>=x0 && !NearGate(course,lx,2.5f) && LowerAt(course,lx,out float ly) && LowerAt(course,lx+.5f,out _) && !NearRail(road,lx))Lamp(ink,lx,ly);
+            for(float bx=Mathf.Ceil(x0/8.5f)*8.5f;bx<x1;bx+=8.5f)if(!NearGate(course,bx,2.2f) && LowerAt(course,bx-.3f,out float y) && LowerAt(course,bx+.3f,out _)){ink.RoundRect(bx-.27f,y-.05f,.54f,.4f,.07f,P.Bollard);ink.Rect(bx-.27f,y+.3f,.54f,.04f,Color.Lerp(P.Bollard,P.DeckEdge,.5f));}
+            if(!course.Endless && course.Length>=x0 && course.Length<x1+2)Finish(ink,course);
+            if(road!=null)
+            {
+                foreach(var r in road.Rails)if(r.X1>x0-.5f && r.X0<x1+.5f && r.X0>=x0-.001f && r.X0<x1)Bunting(ink,course,r);
+                foreach(var pr in road.Props)if(pr.X>=x0 && pr.X<x1)Crates(ink,pr);
+            }
+            // deck, arches and water openings; broken bridge ends at gaps
             float step=.2f;
             for(float x=x0;x<x1-1e-4f;x+=step)
             {
-                float nx=Mathf.Min(x1,x+step),a=Lower(course,x),b=Lower(course,nx);
-                float ua=ArchUnder(course,x),ub=ArchUnder(course,nx);
-                ink.Quad(new Vector2(x,ua),new Vector2(nx,ub),new Vector2(nx,b-.2f),new Vector2(x,a-.2f),P.DeckShade,P.DeckShade,P.Deck,P.Deck);
-                ink.Quad(new Vector2(x,a-.2f),new Vector2(nx,b-.2f),new Vector2(nx,b),new Vector2(x,a),P.DeckTop);
-                ink.Quad(new Vector2(x,a-.215f),new Vector2(nx,b-.215f),new Vector2(nx,b-.185f),new Vector2(x,a-.185f),P.DeckEdge);
-                ink.Quad(new Vector2(x,a-.012f),new Vector2(nx,b-.012f),new Vector2(nx,b+.018f),new Vector2(x,a+.018f),Color.Lerp(P.DeckTop,P.DeckEdge,.6f));
+                float nx=Mathf.Min(x1,x+step);
+                bool ha=LowerAt(course,x,out float a),hb=LowerAt(course,nx,out float b);
+                if(!ha||!hb)
+                {
+                    // find the exact edge inside this strip and draw a broken masonry face there
+                    if(ha!=hb)
+                    {
+                        float lo=x,hi=nx;for(int i=0;i<10;i++){float m=(lo+hi)*.5f;bool hm=LowerAt(course,m,out _);if(hm==ha)lo=m;else hi=m;}
+                        float edge=ha?lo:hi;LowerAt(course,edge+(ha?-.001f:.001f),out float ey);
+                        BrokenEnd(ink,edge,ey,ha?1:-1,k);
+                        if(ha){DeckStrip(ink,x,edge,a,ey,-9,-9);}else{DeckStrip(ink,edge,nx,ey,b,-9,-9);}
+                    }
+                    continue;
+                }
+                DeckStrip(ink,x,nx,a,b,ArchUnder(course,x),ArchUnder(course,nx));
             }
-            // pale lip marks where an assisted pop is possible
-            var lip=P.Sun;lip.a=.8f;
+            // pale lip marks on kickers
+            var lip=P.Sun;lip.a=.85f;
             foreach(var s in course.Surfaces)if(s.Lip && s.End>x0 && s.End<=x1+.01f)
             {for(float x=s.End-.7f;x<s.End-.02f;x+=.1f)ink.Line(new Vector2(x,s.Height(x)+.03f),new Vector2(x+.1f,s.Height(x+.1f)+.03f),.05f,lip);}
+        }
+        static void DeckStrip(Ink ink,float x,float nx,float a,float b,float ua,float ub)
+        {
+            ink.Quad(new Vector2(x,ua),new Vector2(nx,ub),new Vector2(nx,b-.2f),new Vector2(x,a-.2f),P.DeckShade,P.DeckShade,P.Deck,P.Deck);
+            ink.Quad(new Vector2(x,a-.2f),new Vector2(nx,b-.2f),new Vector2(nx,b),new Vector2(x,a),P.DeckTop);
+            ink.Quad(new Vector2(x,a-.215f),new Vector2(nx,b-.215f),new Vector2(nx,b-.185f),new Vector2(x,a-.185f),P.DeckEdge);
+            ink.Quad(new Vector2(x,a-.012f),new Vector2(nx,b-.012f),new Vector2(nx,b+.018f),new Vector2(x,a+.018f),Color.Lerp(P.DeckTop,P.DeckEdge,.6f));
+        }
+        // A broken bridge end: jagged masonry face, a few fallen stones at the waterline.
+        static void BrokenEnd(Ink ink,float x,float top,int dir,int k)
+        {
+            var pts=new System.Collections.Generic.List<Vector2>();
+            float[] jag={0,.18f,.05f,.26f,.1f,.3f,.12f,.22f};
+            pts.Add(new Vector2(x-dir*.35f,top));
+            for(int i=0;i<jag.Length;i++)pts.Add(new Vector2(x+dir*jag[i]*.6f,top-i*.55f));
+            pts.Add(new Vector2(x-dir*.35f,top-(jag.Length-1)*.55f));
+            ink.Polygon(pts,P.DeckShade);
+            ink.Quad(new Vector2(x-dir*.35f,top-.2f),new Vector2(x,top-.2f),new Vector2(x+dir*.08f,top),new Vector2(x-dir*.35f,top),P.DeckTop);
+            var r=new Rng(k*131+(int)(x*7));
+            for(int i=0;i<3;i++){float sx=x+dir*r.Range(.3f,1.6f),sw=r.Range(.2f,.45f);ink.Polygon(new[]{new Vector2(sx-sw,-2.3f),new Vector2(sx+sw,-2.3f),new Vector2(sx+sw*.5f,-2.3f+sw*.7f),new Vector2(sx-sw*.3f,-2.3f+sw*.8f)},i%2==0?P.DeckShade:P.RockShade);}
+        }
+        static bool NearRail(PortoRoad road,float x){if(road==null)return false;foreach(var r in road.Rails)if(x>r.X0-1.5f && x<r.X1+1.5f)return true;return false;}
+        // Festival bunting strung between two posts: the rope is the grind line.
+        static void Bunting(Ink ink,Course course,PortoRoad.Rail r)
+        {
+            LowerAt(course,r.X0,out float g0);LowerAt(course,r.X1,out float g1);
+            ink.Rect(r.X0-.06f,g0,.08f,r.Y0-g0+.35f,P.Lamp);ink.Rect(r.X1-.02f,g1,.08f,r.Y1-g1+.35f,P.Lamp);
+            ink.Ellipse(new Vector2(r.X0-.02f,r.Y0+.36f),.07f,.07f,P.LampGlass);ink.Ellipse(new Vector2(r.X1+.02f,r.Y1+.36f),.07f,.07f,P.LampGlass);
+            ink.Line(new Vector2(r.X0,r.Y0),new Vector2(r.X1,r.Y1),.05f,P.Rail);
+            ink.Line(new Vector2(r.X0,r.Y0+.02f),new Vector2(r.X1,r.Y1+.02f),.015f,Color.Lerp(P.Rail,P.Sun,.35f));
+            int n=Mathf.FloorToInt((r.X1-r.X0)/.42f);
+            for(int i=0;i<n;i++)
+            {
+                float x=r.X0+.2f+i*.42f,y=r.Y(x)-.03f;
+                Color c=i%4==0?P.Laundry1:i%4==1?P.Flower:i%4==2?P.Shutter:P.Lemon;
+                ink.Triangle(new Vector2(x-.13f,y),new Vector2(x+.13f,y),new Vector2(x+.01f,y-.3f),c);
+            }
+        }
+        // Wooden lemon crates: the obstacles to hop.
+        static void Crates(Ink ink,PortoRoad.Prop p)
+        {
+            int rows=p.Kind==1?2:1;float ch=p.H/rows;
+            for(int i=0;i<rows;i++)
+            {
+                float y=p.Base+i*ch,x=p.X+(i==1?.06f:0),w=p.W-(i==1?.12f:0);
+                ink.Rect(x,y,w,ch,P.Wood);ink.Rect(x+w*.8f,y,w*.2f,ch,P.WoodShade);
+                for(int s2=1;s2<3;s2++)ink.Rect(x,y+ch*s2/3f-.02f,w,.035f,P.WoodShade);
+                ink.Rect(x-.02f,y+ch-.05f,w+.04f,.05f,Color.Lerp(P.Wood,P.Sun,.3f));
+            }
+            float top=p.Base+p.H;int lemons=Mathf.Max(3,Mathf.FloorToInt(p.W/.2f));
+            for(int i=0;i<lemons;i++){float lx=p.X+.12f+i*(p.W-.24f)/(lemons-1);ink.Ellipse(new Vector2(lx,top+.08f+(i%2)*.05f),.1f,.075f,P.Lemon);}
+            ink.Leaf(new Vector2(p.X+p.W*.5f,top+.15f),40,.22f,.09f,P.LemonLeaf);
+        }
+        // Grind sparks and boost wind streaks around the rider.
+        public static void Effects(Ink ink,Motor motor,Vector2 pos,float time,bool still)
+        {
+            var p=motor.RenderPose;
+            if(p.Mode==1)
+            {
+                for(int i=0;i<9;i++)
+                {
+                    float t=Mathf.Repeat(time*3.1f+i*.137f,1),a=Hash(i,(int)(time*8))*40+150;
+                    Vector2 d=Ink.Rotate(Vector2.right,a)*(.15f+t*.55f);var c=P.Spark;c.a=1-t;
+                    ink.Line(pos+new Vector2(.05f,.02f)+d*.6f,pos+new Vector2(.05f,.02f)+d,.03f*(1-t)+.01f,c);
+                }
+            }
+            if(motor is MopedMotor mm && mm.Boost>0 && !still)
+            {
+                var c=P.Paper;
+                for(int i=0;i<6;i++)
+                {
+                    float y=pos.y+.2f+Hash(i,3)*1.4f,len=.8f+Hash(i,4)*1.4f;float x=pos.x-1.2f-Mathf.Repeat(time*14+i*1.7f,4);
+                    c.a=.35f*Mathf.Clamp01(mm.Boost);ink.Rect(x-len,y,len,.025f,c);
+                }
+            }
+        }
+        // Lemons to collect (drawn per frame so they can disappear and bob).
+        public static void Lemons(Ink ink,PortoRoad road,float camX,float camY,float hw,float time)
+        {
+            foreach(var l in road.Lemons)
+            {
+                if(l.Taken||l.X<camX-hw-1||l.X>camX+hw+1)continue;
+                Vector2 c=new Vector2(l.X-camX,l.Y-camY+Mathf.Sin(time*3+l.X)*.05f);
+                var glow=P.Lemon;glow.a=.25f;ink.Ellipse(c,.24f,.24f,glow);
+                ink.Ellipse(c,.15f,.11f,P.Lemon);ink.Ellipse(c+new Vector2(-.03f,.03f),.06f,.035f,Color.Lerp(P.Lemon,P.Sun,.6f));
+                ink.Triangle(c+new Vector2(.14f,-.02f),c+new Vector2(.14f,.02f),c+new Vector2(.19f,0),P.Lemon);
+                ink.Leaf(c+new Vector2(-.02f,.09f),60,.14f,.07f,P.LemonLeaf);
+            }
         }
         const float ArchSpacing=3.9f,ArchRadius=1.25f,ArchRise=1.3f,DeckDepth=1.2f;
         // Underside of the deck: arch intrados over the water, or piers down below the screen.
@@ -451,7 +554,8 @@ namespace Fosters.Bellavolta
         {
             float cell=Mathf.Floor(x/ArchSpacing),cx=(cell+.5f)*ArchSpacing,d=(x-cx)/ArchRadius;
             if(Mathf.Abs(d)>=1)return -9;
-            float crown=Mathf.Min(Lower(c,cx-ArchRadius),Mathf.Min(Lower(c,cx),Lower(c,cx+ArchRadius)))-DeckDepth;
+            if(!LowerAt(c,cx-ArchRadius-.4f,out float l)||!LowerAt(c,cx,out float m)||!LowerAt(c,cx+ArchRadius+.4f,out float r))return -9;
+            float crown=Mathf.Min(l,Mathf.Min(m,r))-DeckDepth;
             return crown-ArchRise+ArchRise*Mathf.Sqrt(1-d*d);
         }
         static bool NearGate(Course c,float x,float r){foreach(float g in c.Arches)if(x>g-r && x<g+2.2f+r)return true;return false;}

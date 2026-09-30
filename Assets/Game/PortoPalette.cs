@@ -18,6 +18,7 @@ namespace Fosters.Bellavolta
         public Color Ferry, FerryShade, Funnel, Wake;
         public Color Jacket, JacketShade, Helmet, Hair, Skin, Trousers, TrousersShade, Shoe, Moped, MopedShade, MopedLight, Tyre, Rim, Metal;
         public Color Ink, Paper;
+        public Color Wood, WoodShade, Lemon, LemonLeaf, Spark;
         public bool Evening;
 
         static Color H(string s)=>Studio.Ink.Hex(s);
@@ -49,7 +50,8 @@ namespace Fosters.Bellavolta
             Ferry=H("F2EDF0"),FerryShade=H("C9C1CB"),Funnel=H("D0503F"),Wake=H("A4C8C8"),
             Jacket=H("DD5E43"),JacketShade=H("B84836"),Helmet=H("F7DDB3"),Hair=H("32293E"),Skin=H("A8705E"),Trousers=H("2F4953"),TrousersShade=H("263B44"),Shoe=H("F5D5A8"),
             Moped=H("3F6A66"),MopedShade=H("2E4D4E"),MopedLight=H("5B8580"),Tyre=H("2A2331"),Rim=H("5A5261"),Metal=H("8C8595"),
-            Ink=H("4A3A4E"),Paper=H("FBE6C6")
+            Ink=H("4A3A4E"),Paper=H("FBE6C6"),
+            Wood=H("B87A5C"),WoodShade=H("8F5A4A"),Lemon=H("F4CF55"),LemonLeaf=H("5E8A62"),Spark=H("FFE7A8")
         };
 
         public static PortoPalette Dusk()
@@ -69,6 +71,7 @@ namespace Fosters.Bellavolta
             p.Leaf=H("2E2336");p.LeafLight=H("3A2D43");
             p.Ferry=H("E6DDE3");p.FerryShade=H("B9AFBE");p.Wake=H("C9B2AE");
             p.Ink=H("3F3145");p.Paper=H("F6DDC4");
+            p.Wood=H("A06A57");p.WoodShade=H("7C4E46");p.Lemon=H("F0C353");p.LemonLeaf=H("4F775A");
             return p;
         }
     }
