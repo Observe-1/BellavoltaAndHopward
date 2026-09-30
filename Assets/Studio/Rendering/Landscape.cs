@@ -28,6 +28,18 @@ namespace Fosters.Studio
             float bx=Mathf.Repeat(18-cameraX*.35f,54)-20;
             Bridge(bx,-3.6f,4.2f,p[3],p[4]);
             float offset=-cameraX, floor=-11;
+            // Sparse roadside planting sits behind the path edge; the path body hides the pots.
+            for(int j=Mathf.FloorToInt((cameraX-halfWidth)/22);j<(cameraX+halfWidth)/22+1;j++)
+            {
+                float wx=j*22+14, y=course.Ground(wx);
+                if(y>-50)Planter(wx+offset,y-cameraY-.02f,p);
+            }
+            // Approach and departure quay beyond the authored course, so no frame shows a void.
+            float startY=course.Ground(0)-cameraY,endY=course.Ground(course.Length-.01f)-cameraY;
+            if(offset>left)
+            {ink.Rect(left,floor,offset-left,startY-floor,p[6]);ink.Line(new Vector2(left,startY),new Vector2(offset,startY),prefs.Contrast?.095f:.045f,prefs.Contrast?p[1]:Color.Lerp(p[5],p[1],.45f));}
+            if(course.Length+offset<right)
+            {float ex=course.Length+offset;ink.Rect(ex,floor,right-ex,endY-floor,p[6]);ink.Line(new Vector2(ex,endY),new Vector2(right,endY),prefs.Contrast?.095f:.045f,prefs.Contrast?p[1]:Color.Lerp(p[5],p[1],.45f));}
             foreach(var s in course.Surfaces)
             {
                 if(s.End+offset<left || s.Start+offset>right)continue;
@@ -36,8 +48,8 @@ namespace Fosters.Studio
                 for(float x=start;x<end;x+=.35f)
                 {
                     float nx=Mathf.Min(end,x+.35f),a=s.Height(x)-cameraY,b=s.Height(nx)-cameraY;
-                    float bottom=s.Upper?Mathf.Min(a,b)-.22f:floor;
-                    ink.Quad(new Vector2(x+offset,bottom),new Vector2(nx+offset,bottom),new Vector2(nx+offset,b),new Vector2(x+offset,a),body);
+                    float bottomA=s.Upper?a-.22f:floor,bottomB=s.Upper?b-.22f:floor;
+                    ink.Quad(new Vector2(x+offset,bottomA),new Vector2(nx+offset,bottomB),new Vector2(nx+offset,b),new Vector2(x+offset,a),body);
                     ink.Line(new Vector2(x+offset,a),new Vector2(nx+offset,b),prefs.Contrast?.095f:.045f,prefs.Contrast?p[1]:Color.Lerp(p[5],p[1],.45f));
                 }
                 if(s.Upper)
@@ -58,12 +70,6 @@ namespace Fosters.Studio
                 ink.Rect(x+offset-.18f,y-1.2f,.18f,3.4f,Color.Lerp(p[5],p[6],.6f));
                 ink.Rect(x+offset+2.08f,y-1.2f,.18f,3.4f,Color.Lerp(p[5],p[6],.6f));
                 ink.Line(new Vector2(x+offset,y+1.62f),new Vector2(x+offset+2.2f,y+1.62f),.05f,p[1]);
-            }
-            // Sparse roadside motifs, never across the character contact or a landing edge.
-            for(int j=Mathf.FloorToInt((cameraX-halfWidth)/22);j<(cameraX+halfWidth)/22+1;j++)
-            {
-                float wx=j*22+14, y=course.Ground(wx);
-                if(y>-50)Planter(wx+offset,y-cameraY-.55f,p);
             }
             float finish=course.Length-cameraX;
             if(finish<right+4){float y=course.Ground(course.Length-.1f)-cameraY;ink.Rect(finish,y,.09f,2.4f,p[1]);ink.Triangle(new Vector2(finish,y+2.4f),new Vector2(finish+.9f,y+2.13f),new Vector2(finish,y+1.87f),p[7]);}
