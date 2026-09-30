@@ -2,13 +2,15 @@
 
 Open this folder in Unity 6000.6.3f1. On a product branch, the editor creates Assets/Scenes/Journey.unity and configures the product. Open that scene and press Play. Runtime bootstrap creates the scene's original vector world and menus.
 
-Build from the **fostersdigital > Build** menu, or run Unity locally with `-batchmode -quit -projectPath <this folder> -executeMethod Fosters.Studio.Editor.StudioBuild.IOS` (Android / Desktop are analogous). There are no GitHub Actions.
+Build from the **fostersdigital > Build** menu, or run Unity locally with `-batchmode -quit -projectPath <this folder> -executeMethod Fosters.Studio.Editor.StudioBuild.IOS` (Android / Desktop are analogous). There are no GitHub Actions; TestFlight builds run on the Mac mini (Tools/testflight).
 
 Identifiers follow the verified OpenPrayer scheme `com.fostersdigital.openprayer`: `com.fostersdigital.bellavolta` and `com.fostersdigital.hopward`. Display names and local progress stores are separate. Foundation is not a release product.
 
 ## iOS
 
-Export an unsigned Xcode project under Builds/iOS. Deployment minimum 18.0, landscape, IL2CPP. Automatic signing is off and team ID is blank. Transfer to a Mac with the currently required Xcode/SDK; the owner selects their team, provisioning and signing and performs the final archive/upload. No certificate or signing profile is committed.
+TestFlight builds are automatic: push to the `TestFlight` branch and the Mac mini builds, signs and uploads it. See `Tools/testflight/README.md`.
+
+For a local export, build an unsigned Xcode project under Builds/iOS. Deployment minimum 18.0, landscape, IL2CPP. Automatic signing is off and team ID is blank. Transfer to a Mac with the currently required Xcode/SDK; the owner selects their team, provisioning and signing and performs the final archive/upload. No certificate or signing profile is committed.
 
 ## Android
 
