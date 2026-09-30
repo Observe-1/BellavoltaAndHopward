@@ -16,11 +16,16 @@ namespace Fosters.Bellavolta
         public override string SecondaryControl=>"Pop / tabletop";
         public override bool IsMotorbike=>true;
         public override int MultiplierCap=>4;
+        // Roles used by the shared shell (menus, HUD): 0 sky, 1 paper, 2 far, 3 town, 4 sea, 5 wall, 6 ink, 7 accent.
         public override Color[] Palette(bool dusk)
         {
-            string[] colors=dusk?new[]{"C99483","F1D3AB","9292AD","AF8E96","70929F","BE8A76","423C50","C77D66"}:new[]{"EAB991","F4DDB1","A7A4B8","B8A0A1","76A2AD","D19B83","493F54","C77D66"};
-            var p=new Color[8];for(int i=0;i<8;i++)ColorUtility.TryParseHtmlString("#"+colors[i],out p[i]);return p;
+            var p=dusk?PortoPalette.Dusk():PortoPalette.Day();
+            return new[]{p.SkyTop,p.Paper,p.RidgeMid,p.VillageWall,p.Sea,p.NearWall,p.Ink,p.Jacket};
         }
+        // Closer framing than the foundation default: rider near a third across, road at ~70% down.
+        public override float CameraSize=>3.8f;
+        public override float CameraLift=>PortoArt.CameraRest;
+        public override IScenery CreateScenery(Transform root)=>new PortoScenery(root,this);
         public override Course CreateCourse(int outing)
         {
             var c=new Course{Length=450};

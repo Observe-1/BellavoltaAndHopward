@@ -59,6 +59,15 @@ class ModelChecks
             Check(s.Multiplier==4,"Line multiplier caps at x4");
             var d=new LineScore(4);d.Add("Wheelie",80);d.Add("Wheelie",80);Check(d.Pending<160,"Repeated wheelies diminish");
         }
+        {
+            // Art guards: deterministic tiles, foreground never over the riding line.
+            var fg=Array.Find(PortoArt.Layers,l=>l.Name=="Foreground");float top=-99;bool same=true;
+            for(int k=-2;k<40;k++){var a=new Ink();fg.Draw(a,k,null);foreach(var v in a.Vertices)top=Math.Max(top,v.y);var b=new Ink();fg.Draw(b,k,null);same&=a.Count==b.Count;}
+            Check(top<-.5f,"Foreground planting stays below the road edge (max "+top.ToString("0.00")+")");
+            var course=module.CreateCourse(0);var road=Array.Find(PortoArt.Layers,l=>l.Name=="Road");
+            for(int k=-1;k<30;k++){var a=new Ink();road.Draw(a,k,course);var b=new Ink();road.Draw(b,k,course);same&=a.Count==b.Count;}
+            Check(same,"Scenery tiles rebuild identically");
+        }
         Environment.ExitCode=failures>0?1:0;
     }
 }
