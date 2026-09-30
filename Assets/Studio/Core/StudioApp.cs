@@ -78,7 +78,8 @@ namespace Fosters.Studio
             }
             ui.Refresh();
         }
-        void LateUpdate()
+        void LateUpdate(){RenderFrame();}
+        public void RenderFrame()
         {if(Module!=null)landscape.Draw(Course,Motor,Progress,CameraX,CameraY,view.orthographicSize*view.aspect,Progress.ReducedMotion?0:RunTime);}
         void OnApplicationPause(bool paused){if(paused){Pause();Progress?.Save();}}
         void OnApplicationFocus(bool focused){if(!focused){InputReader.Cancel();Motor?.CancelInput();Pause();}}
